@@ -388,6 +388,14 @@ async function showHistoryEditModal(history) {
     historyDate.setHours(historyDate.getHours() + 9); // UTC+9
     const formattedDate = historyDate.toISOString().slice(0, 16);
 
+    // 시술 목록을 즐겨찾기 기준으로 정렬
+    const sortedServices = [...cachedData.services].sort((a, b) => {
+        if (a.is_favorite === b.is_favorite) {
+            return a.name.localeCompare(b.name); // 같은 그룹 내에서는 이름순
+        }
+        return b.is_favorite - a.is_favorite; // 즐겨찾기가 먼저 오도록
+    });
+
     showModal('시술 내역 수정', `
         <form id="historyEditForm">
             <input type="hidden" name="id" value="${history.id}">
@@ -400,9 +408,9 @@ async function showHistoryEditModal(history) {
                 <label>시술종류</label>
                 <select name="service_id" required onchange="updateServicePrice(this.value)">
                     <option value="">시술 선택</option>
-                    ${cachedData.services.map(s => `
+                    ${sortedServices.map(s => `
                         <option value="${s.id}" data-price="${s.price}" ${s.id === history.service_id ? 'selected' : ''}>
-                            ${s.name} - ${s.price.toLocaleString()}원
+                            ${s.is_favorite ? '★ ' : ''}${s.name} - ${s.price.toLocaleString()}원
                         </option>
                     `).join('')}
                 </select>
