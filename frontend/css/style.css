@@ -506,7 +506,14 @@ td {
 }
 
 .modal-buttons {
+    display: flex;
+    justify-content: space-between;
     margin-top: 20px;
+}
+
+.serviceEdit_modal-buttons {
+    margin-top: 20px;
+    text-align: center;
 }
 
 .modal-buttons .left-buttons {

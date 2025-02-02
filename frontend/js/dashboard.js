@@ -861,7 +861,7 @@ function showServiceEditModal(serviceId, field, currentValue) {
                        value="${currentValue}" required
                        ${field === 'price' ? 'min="0"' : ''}>
             </div>
-            <div class="modal-buttons">
+            <div class="serviceEdit_modal-buttons">
                 <button type="submit" class="add-button">수정</button>
             </div>
         </form>
