@@ -529,3 +529,56 @@ td {
 .delete-button:hover {
     background-color: #c0392b;
 }
+
+select {
+    -webkit-appearance: none;  /* 기본 화살표 제거 (Chrome, Safari) */
+    -moz-appearance: none;     /* 기본 화살표 제거 (Firefox) */
+    appearance: none;          /* 기본 화살표 제거 */
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 32px;  /* 화살표를 위한 여백 */
+}
+
+/* IE에서 기본 화살표 제거 */
+select::-ms-expand {
+    display: none;
+}
+
+input[type="datetime-local"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+input[type="datetime-local"]:focus {
+    outline: none;
+    border-color: #666;
+}
+
+.editable {
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.editable:hover {
+    background-color: #f0f0f0;
+}
+
+.editable::after {
+    content: '✎';
+    margin-left: 5px;
+    font-size: 12px;
+    color: #999;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.editable:hover::after {
+    opacity: 1;
+}

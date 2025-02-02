@@ -3,6 +3,7 @@ const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const { open } = require('sqlite');
 const path = require('path');
+const { create } = require('domain');
 process.env.TZ = 'Asia/Seoul';
 
 const app = express();
@@ -44,7 +45,7 @@ async function initializeDB() {
             service_id INTEGER,
             amount INTEGER,
             memo TEXT,
-            created_at DATETIME DEFAULT (datetime('now', 'localtime')),
+            created_at DATETIME,
             FOREIGN KEY (customer_id) REFERENCES customers(id),
             FOREIGN KEY (service_id) REFERENCES services(id)
         );
@@ -159,13 +160,13 @@ app.get('/api/history', async (req, res) => {
 });
 
 app.post('/api/history', async (req, res) => {
-    const { customer_id, service_id, amount, memo } = req.body;
+    const { customer_id, service_id, amount, memo, created_at } = req.body;
     const koreanTime = getKoreanTime();
 
     try {
         const result = await db.run(
             'INSERT INTO history (customer_id, service_id, amount, memo, created_at) VALUES (?, ?, ?, ?, ?)',
-            [customer_id, service_id, amount, memo, koreanTime]
+            [customer_id, service_id, amount, memo, created_at]
         );
         res.json({ id: result.lastID });
     } catch (err) {
@@ -176,11 +177,11 @@ app.post('/api/history', async (req, res) => {
 // 시술 내역 수정 API
 app.put('/api/history/:id', async (req, res) => {
     const { id } = req.params;
-    const { service_id, amount, memo } = req.body;
+    const { service_id, amount, memo, created_at } = req.body;
     try {
         await db.run(
-            'UPDATE history SET service_id = ?, amount = ?, memo = ? WHERE id = ?',
-            [service_id, amount, memo, id]
+            'UPDATE history SET service_id = ?, amount = ?, memo = ?, created_at = ? WHERE id = ?',
+            [service_id, amount, memo, created_at, id]
         );
         res.json({ success: true });
     } catch (err) {
@@ -225,6 +226,21 @@ app.delete('/api/customers/:id', async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         await db.run('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 시술 정보 수정 API
+app.put('/api/services/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, price } = req.body;
+    try {
+        await db.run(
+            'UPDATE services SET name = ?, price = ? WHERE id = ?',
+            [name, price, id]
+        );
+        res.json({ success: true });
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });

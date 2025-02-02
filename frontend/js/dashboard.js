@@ -76,6 +76,11 @@ function changePage(pageId) {
     pages.forEach(page => {
         page.classList.toggle('hidden', page.id !== pageId + '-page');
     });
+
+    // 메인화면으로 전환될 때 applyMainSearch 실행
+    if (pageId === 'main') {
+        applyMainSearch();
+    }
 }
 
 // 모달 관련 함수
@@ -246,6 +251,7 @@ document.getElementById('addCustomerBtn').addEventListener('click', () => {
                     sortState.customers.direction
                 ));
                 hideModal();
+                alert("등록되었습니다.");
             }
         } catch (error) {
             console.error('Error:', error);
@@ -253,6 +259,13 @@ document.getElementById('addCustomerBtn').addEventListener('click', () => {
         }
     });
 });
+
+// 현재 시간을 YYYY-MM-DDTHH:mm 형식으로 반환하는 함수
+function getCurrentDateTime() {
+    const now = new Date();
+    now.setHours(now.getHours() + 9); // UTC+9
+    return now.toISOString().slice(0, 16);
+}
 
 // 시술 내역 추가 모달
 document.getElementById('addHistoryBtn').addEventListener('click', async () => {
@@ -304,6 +317,10 @@ document.getElementById('addHistoryBtn').addEventListener('click', async () => {
                 <label>메모</label>
                 <textarea name="memo"></textarea>
             </div>
+            <div class="form-group">
+                <label>날짜/시간</label>
+                <input type="datetime-local" name="created_at" required value="${getCurrentDateTime()}">
+            </div>
             <div class="addButtonWrap">
                 <button type="submit" class="add-button">등록</button>
             </div>
@@ -341,6 +358,7 @@ document.getElementById('addHistoryBtn').addEventListener('click', async () => {
                 ));
                 
                 hideModal();
+                alert("등록되었습니다.");
             }
         } catch (error) {
             console.error('Error:', error);
@@ -352,6 +370,11 @@ document.getElementById('addHistoryBtn').addEventListener('click', async () => {
 // 시술 내역 수정 모달
 async function showHistoryEditModal(history) {
     if (cachedData.services.length === 0) await loadServices();
+
+    // created_at을 datetime-local 입력에 맞는 형식으로 변환
+    const historyDate = new Date(history.created_at);
+    historyDate.setHours(historyDate.getHours() + 9); // UTC+9
+    const formattedDate = historyDate.toISOString().slice(0, 16);
 
     showModal('시술 내역 수정', `
         <form id="historyEditForm">
@@ -379,6 +402,10 @@ async function showHistoryEditModal(history) {
             <div class="form-group">
                 <label>메모</label>
                 <textarea name="memo">${history.memo || ''}</textarea>
+            </div>
+            <div class="form-group">
+                <label>날짜/시간</label>
+                <input type="datetime-local" name="created_at" required value="${formattedDate}">
             </div>
             <div class="addButtonWrap modal-buttons">
                 <div class="left-buttons">
@@ -584,6 +611,7 @@ document.getElementById('addServiceBtn').addEventListener('click', async () => {
             document.getElementById('newServiceName').value = '';
             document.getElementById('newServicePrice').value = '';
             renderServicesTable(cachedData.services);
+            alert("등록되었습니다.");
         }
     } catch (error) {
         console.error('Error:', error);
@@ -795,15 +823,82 @@ function renderCustomerHistoryTable(data) {
 function renderServicesTable(data) {
     const tbody = document.getElementById('servicesTableBody');
     tbody.innerHTML = data.map(service => `
-        <tr>
+        <tr data-id="${service.id}">
             <td>
                 <span class="star-icon ${service.is_favorite ? 'active' : ''}"
                     onclick="toggleFavorite(${service.id}, ${!service.is_favorite})">★</span>
             </td>
-            <td>${service.name}</td>
-            <td class="alignRight">${service.price.toLocaleString()}</td>
+            <td>
+                <span class="editable" data-field="name">${service.name}</span>
+            </td>
+            <td>
+                <span class="editable" data-field="price">${service.price.toLocaleString()}</span>
+            </td>
         </tr>
     `).join('');
+
+    // 수정 가능한 필드에 더블클릭 이벤트 추가
+    tbody.querySelectorAll('.editable').forEach(element => {
+        element.addEventListener('dblclick', function() {
+            const field = this.dataset.field;
+            const tr = this.closest('tr');
+            const serviceId = tr.dataset.id;
+            const currentValue = field === 'price' ? 
+                this.textContent.replace(/[^0-9]/g, '') : this.textContent;
+
+            showServiceEditModal(serviceId, field, currentValue);
+        });
+    });
+}
+
+// 시술 정보 수정 모달
+function showServiceEditModal(serviceId, field, currentValue) {
+    const fieldName = field === 'name' ? '시술명' : '금액';
+    const inputType = field === 'name' ? 'text' : 'number';
+    
+    showModal(`${fieldName} 수정`, `
+        <form id="serviceEditForm">
+            <div class="form-group">
+                <label>${fieldName}</label>
+                <input type="${inputType}" name="${field}" 
+                       value="${currentValue}" required
+                       ${field === 'price' ? 'min="0"' : ''}>
+            </div>
+            <div class="modal-buttons">
+                <button type="submit" class="add-button">수정</button>
+            </div>
+        </form>
+    `);
+
+    document.getElementById('serviceEditForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const value = formData.get(field);
+
+        try {
+            const service = cachedData.services.find(s => s.id === parseInt(serviceId));
+            const updateData = {
+                name: field === 'name' ? value : service.name,
+                price: field === 'price' ? parseInt(value) : service.price
+            };
+
+            const response = await fetch(`/api/services/${serviceId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updateData)
+            });
+
+            if (response.ok) {
+                // 캐시된 데이터 업데이트
+                Object.assign(service, updateData);
+                renderServicesTable(cachedData.services);
+                hideModal();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('시술 정보 수정에 실패했습니다.');
+        }
+    });
 }
 
 // 데이터 로드 함수들
@@ -849,7 +944,7 @@ function formatDate(dateStr) {
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const seconds = String(date.getSeconds()).padStart(2, '0');
     
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
 // 즐겨찾기 토글
