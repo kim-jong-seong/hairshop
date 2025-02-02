@@ -84,10 +84,6 @@
             <!-- 고객 관리 -->
             <div id="customers-page" class="page hidden">
                 <h2>고객 및 시술 관리</h2>
-                <div class="button-group">
-                    <button id="addCustomerBtn" class="add-button">새 고객 등록</button>
-                    <button id="addHistoryBtn" class="add-button">새 시술 등록</button>
-                </div>
                 <div class="search-container">
                     <h3 class="filterLabel">고객 목록 필터</h3>
                     <div class="search-fields">
@@ -107,7 +103,10 @@
                 </div>
                 <div class="customer-container">
                     <div class="customer-list">
-                        <h3>고객 목록</h3>
+                        <h3 style="width: 200px;">고객 목록</h3>
+                        <div class="button-group">
+                            <button id="addCustomerBtn" class="add-button" style="float: right;"> + 고객 등록</button>
+                        </div>
                         <div class="table-container">
                             <table>
                                 <thead>
@@ -124,7 +123,9 @@
                         </div>
                     </div>
                     <div class="customer-history">
-                        <h3>시술 내역</h3>
+                        <div class="button-group">
+                            <button id="addHistoryBtn" class="add-button" style="float: right;"> + 시술 등록</button>
+                        </div>
                         <div class="table-container">
                             <table>
                                 <thead>
