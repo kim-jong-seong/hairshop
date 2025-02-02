@@ -890,6 +890,7 @@ function showServiceEditModal(serviceId, field, currentValue) {
                 Object.assign(service, updateData);
                 renderServicesTable(cachedData.services);
                 hideModal();
+                alert("수정되었습니다.");
             }
         } catch (error) {
             console.error('Error:', error);
