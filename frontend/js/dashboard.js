@@ -95,9 +95,6 @@ function hideModal() {
 }
 
 closeBtn.addEventListener('click', hideModal);
-modal.addEventListener('click', (e) => {
-    if (e.target === modal) hideModal();
-});
 
 // 정렬 함수
 function sortData(data, column, direction) {
