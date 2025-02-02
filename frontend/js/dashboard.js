@@ -401,8 +401,8 @@ async function showHistoryEditModal(history) {
                 <select name="service_id" required onchange="updateServicePrice(this.value)">
                     <option value="">시술 선택</option>
                     ${cachedData.services.map(s => `
-                        <option value="${s.id}" ${s.id === history.service_id ? 'selected' : ''}>
-                            ${s.name}
+                        <option value="${s.id}" data-price="${s.price}" ${s.id === history.service_id ? 'selected' : ''}>
+                            ${s.name} - ${s.price.toLocaleString()}원
                         </option>
                     `).join('')}
                 </select>
