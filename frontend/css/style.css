@@ -244,7 +244,7 @@ th:hover {
 }
 
 /* 버튼 스타일 */
-.addButtonWrap {
+.addButtonWrap, .modal-buttons {
     text-align: center;
 }
 
@@ -506,8 +506,6 @@ td {
 }
 
 .modal-buttons {
-    display: flex;
-    justify-content: space-between;
     margin-top: 20px;
 }
 
