@@ -150,7 +150,22 @@ async function fetchServices() {
 }
 
 async function fetchHistory(customerId = null) {
-    const url = customerId ? `/api/history?customer_id=${customerId}` : '/api/history';
+    let url = '/api/history';
+    const params = new URLSearchParams();
+    
+    if (customerId) {
+        params.append('customer_id', customerId);
+    } else {
+        // 메인화면 조회 시에만 날짜 필터 적용
+        if (mainSearchCriteria?.year) params.append('year', mainSearchCriteria.year);
+        if (mainSearchCriteria?.month) params.append('month', mainSearchCriteria.month);
+        if (mainSearchCriteria?.day) params.append('day', mainSearchCriteria.day);
+    }
+
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+    
     const response = await fetch(url);
     return await response.json();
 }
@@ -301,7 +316,7 @@ document.getElementById('addHistoryBtn').addEventListener('click', async () => {
                     <option value="">시술 선택</option>
                     ${sortedServices.map(s => `
                         <option value="${s.id}" data-price="${s.price}">
-                            ${s.is_favorite ? '★ ' : ''}${s.name}
+                            ${s.is_favorite ? '★ ' : ''}${s.name} -  ${s.price.toLocaleString()}원
                         </option>
                     `).join('')}
                 </select>

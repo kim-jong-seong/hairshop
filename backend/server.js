@@ -130,7 +130,7 @@ app.put('/api/services/:id/favorite', async (req, res) => {
 
 // 시술 히스토리 API
 app.get('/api/history', async (req, res) => {
-    const { customer_id } = req.query;
+    const { customer_id, year, month, day } = req.query;
     try {
         let query = `
             SELECT 
@@ -142,12 +142,30 @@ app.get('/api/history', async (req, res) => {
             FROM history h
             JOIN customers c ON h.customer_id = c.id
             JOIN services s ON h.service_id = s.id
+            WHERE 1=1
         `;
         
         const params = [];
+
+        // customer_id가 있는 경우 (고객별 히스토리 조회 시)
         if (customer_id) {
-            query += ' WHERE h.customer_id = ?';
+            query += ' AND h.customer_id = ?';
             params.push(customer_id);
+        } 
+        // 메인화면 조회 시 (날짜 필터)
+        else {
+            if (year) {
+                query += " AND strftime('%Y', h.created_at) = ?";
+                params.push(year);
+            }
+            if (month) {
+                query += " AND strftime('%m', h.created_at) = ?";
+                params.push(month);
+            }
+            if (day) {
+                query += " AND strftime('%d', h.created_at) = ?";
+                params.push(day);
+            }
         }
         
         query += ' ORDER BY h.created_at DESC';
