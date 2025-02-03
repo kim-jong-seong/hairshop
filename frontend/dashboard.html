@@ -15,8 +15,9 @@
             </div>
             <div class="nav-items">
                 <div class="nav-item active" data-page="main">전체내역</div>
-                <div class="nav-item" data-page="customers">고객시술관리</div>
                 <div class="nav-item" data-page="services">시술항목관리</div>
+                <div class="nav-item" data-page="customers">고객시술관리</div>
+                <div class="nav-item" data-page="sales">매출현황</div>
             </div>
             <button id="logoutBtn" class="logout-btn">로그아웃</button>
         </nav>
@@ -64,7 +65,7 @@
                             <tr>
                                 <th style="width: 80px;">번호</th>
                                 <th style="width: 200px;">날짜</th>
-                                <th style="width: 100px;">이름</th>
+                                <th style="width: 120px;">이름</th>
                                 <th style="width: 80px;">성별</th>
                                 <th style="width: 200px;">전화번호</th>
                                 <th style="width: 200px;">시술종류</th>
@@ -112,7 +113,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 80px;">번호</th>
-                                        <th style="width: 100px;">이름</th>
+                                        <th style="width: 120px;">이름</th>
                                         <th style="width: 80px;">성별</th>
                                         <th style="width: 200px;">전화번호</th>
                                         <th style="min-width: 100px;">메모</th>
@@ -163,6 +164,58 @@
                         </thead>
                         <tbody id="servicesTableBody"></tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- 매출현황 -->
+            <div id="sales-page" class="page hidden">
+                <h2>매출 현황</h2>
+                <!-- 기간 선택 영역 -->
+                <div class="search-container">
+                    <div class="search-fields">
+                        <div class="search-field">
+                            <label>조회 기준</label>
+                            <select id="salesViewType" class="search-input">
+                                <option value="day">일별</option>
+                                <option value="month">월별</option>
+                                <option value="year">연별</option>
+                            </select>
+                        </div>
+                        <div class="search-field">
+                            <label>조회 기간</label>
+                            <div class="date-range">
+                                <input type="date" id="salesStartDate" class="search-input">
+                                <span>~</span>
+                                <input type="date" id="salesEndDate" class="search-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+                <!-- 매출 테이블 -->
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>기간</th>
+                                <th>시술 건수</th>
+                                <th>매출</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- 매출 요약 카드 -->
+                <div class="sales-summary">
+                    <div class="summary-card">
+                        <div class="card-title">시술 건수</div>
+                        <div class="card-amount" id="totalCount">0건</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-title">총 매출</div>
+                        <div class="card-amount" id="totalSales">0원</div>
+                    </div>
                 </div>
             </div>
         </main>

@@ -263,6 +263,40 @@ app.put('/api/services/:id', async (req, res) => {
     }
 });
 
+app.get('/api/sales', async (req, res) => {
+    const { viewType, startDate, endDate } = req.query;
+    try {
+        let groupFormat;
+        switch(viewType) {
+            case 'year':
+                groupFormat = '%Y년';
+                break;
+            case 'month':
+                groupFormat = '%Y년 %m월';
+                break;
+            default:
+                groupFormat = '%Y-%m-%d';
+        }
+
+        const query = `
+            SELECT 
+                strftime('${groupFormat}', created_at) as period,
+                COUNT(*) as count,
+                SUM(amount) as total
+            FROM history
+            WHERE date(created_at) BETWEEN date(?) AND date(?)
+            GROUP BY strftime('${groupFormat}', created_at)
+            ORDER BY created_at
+        `;
+
+        const results = await db.all(query, [startDate, endDate]);
+        res.json(results);
+    } catch (err) {
+        console.error('Sales query error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 서버 시작
 async function startServer() {
     await initializeDB();

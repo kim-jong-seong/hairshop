@@ -20,7 +20,8 @@ let cachedData = {
 let sortState = {
     history: { column: 'created_at', direction: 'desc' },
     customers: { column: 'name', direction: 'asc' },
-    customerHistory: { column: 'created_at', direction: 'desc' }
+    customerHistory: { column: 'created_at', direction: 'desc' },
+    sales: { column: 'period', direction: 'asc' }
 };
 
 // 테이블 컬럼 정의
@@ -48,6 +49,11 @@ const TABLE_COLUMNS = {
         { key: 'service_name', label: '시술종류' },
         { key: 'amount', label: '금액' },
         { key: 'memo', label: '메모', sortable: false }
+    ],
+    sales: [
+        { key: 'period', label: '기간' },
+        { key: 'count', label: '시술 건수' },
+        { key: 'total', label: '매출' }
     ]
 };
 
@@ -81,6 +87,11 @@ function changePage(pageId) {
     if (pageId === 'main') {
         applyMainSearch();
     }
+
+    // 매출관리 페이지로 전환 시 데이터 로드
+    if (pageId === 'sales') {
+        initializeSalesPage();
+    }
 }
 
 // 모달 관련 함수
@@ -102,17 +113,26 @@ function sortData(data, column, direction) {
         let valueA = a[column];
         let valueB = b[column];
 
-        // 날짜 형식 처리
-        if (column === 'created_at') {
+        // 매출관리 테이블의 특수한 정렬 처리
+        if (column === 'period') {
+            // period는 문자열이지만 날짜순으로 정렬되어야 함
+            valueA = a[column].replace('년', '').replace('월', '').replace(' ', '');
+            valueB = b[column].replace('년', '').replace('월', '').replace(' ', '');
+        } 
+        else if (column === 'count' || column === 'total') {
+            // 숫자 정렬
+            valueA = Number(valueA);
+            valueB = Number(valueB);
+        }
+        // 기존 정렬 로직
+        else if (column === 'created_at') {
             valueA = new Date(valueA);
             valueB = new Date(valueB);
         }
-        // 숫자 형식 처리
         else if (column === 'amount') {
             valueA = Number(valueA);
             valueB = Number(valueB);
         }
-        // 문자열 처리
         else {
             valueA = String(valueA || '').toLowerCase();
             valueB = String(valueB || '').toLowerCase();
@@ -183,6 +203,7 @@ function setupTableSorting(tableId, sortKey) {
             header.style.cursor = 'pointer';
             header.addEventListener('click', () => {
                 const column = columns[index].key;
+
                 if (sortState[sortKey].column === column) {
                     sortState[sortKey].direction = toggleSortDirection(sortState[sortKey].direction);
                 } else {
@@ -192,21 +213,11 @@ function setupTableSorting(tableId, sortKey) {
 
                 // 정렬 표시 업데이트
                 headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
-                if (sortState[sortKey].direction !== 'default') {
-                    header.classList.add(`sort-${sortState[sortKey].direction}`);
-                }
+                header.classList.add(`sort-${sortState[sortKey].direction}`);
 
-                // 데이터 다시 로드
-                const data = sortState[sortKey].direction === 'default' 
-                    ? [...cachedData[sortKey]] // 기본 상태면 원본 데이터 복사
-                    : sortData(cachedData[sortKey], column, sortState[sortKey].direction);
-
-                if (sortKey === 'history') {
-                    renderHistoryTable(data);
-                } else if (sortKey === 'customers') {
-                    renderCustomerTable(data);
-                } else if (sortKey === 'customerHistory' && currentHistoryData) {
-                    renderCustomerHistoryTable(data);
+                // 매출관리 테이블 다시 렌더링
+                if (sortKey === 'sales') {
+                    loadSalesData();
                 }
             });
         }
@@ -991,6 +1002,82 @@ window.toggleFavorite = async function(serviceId, isFavorite) {
     }
 };
 
+// 매출 데이터 조회
+async function loadSalesData() {
+    const viewType = document.getElementById('salesViewType').value;
+    const startDate = document.getElementById('salesStartDate').value;
+    const endDate = document.getElementById('salesEndDate').value;
+
+    try {
+        const response = await fetch(`/api/sales?viewType=${viewType}&startDate=${startDate}&endDate=${endDate}`);
+        const data = await response.json();
+
+        // 요약 정보 업데이트
+        updateSalesSummary(data);
+
+        // 정렬 적용해서 바로 렌더링
+        renderSalesTable(data);
+    } catch (error) {
+        console.error('Error loading sales data:', error);
+    }
+}
+
+// 매출관리 초기화
+function initializeSalesPage() {
+    // 오늘 날짜 기준으로 기본 날짜 설정
+    const today = new Date();
+    today.setHours(today.getHours() + 9); // UTC+9
+    const endDate = today.toISOString().split('T')[0];
+    
+    // 시작일은 현재 월의 1일로 설정
+    const startDate = `${endDate.substring(0, 7)}-01`;
+    
+    // 날짜 입력 필드에 기본값 설정
+    document.getElementById('salesStartDate').value = startDate;
+    document.getElementById('salesEndDate').value = endDate;
+
+    // 정렬 설정 추가
+    setupTableSorting('salesTableBody', 'sales');
+    
+    // 초기 데이터 로드
+    loadSalesData();
+}
+
+// 이벤트 리스너 추가
+document.getElementById('salesViewType').addEventListener('change', loadSalesData);
+document.getElementById('salesStartDate').addEventListener('change', loadSalesData);
+document.getElementById('salesEndDate').addEventListener('change', loadSalesData);
+
+
+// 요약 정보 업데이트
+function updateSalesSummary(data) {
+    const totalSales = data.reduce((sum, item) => sum + item.total, 0);
+    const totalCount = data.reduce((sum, item) => sum + item.count, 0);
+
+    document.getElementById('totalSales').textContent = totalSales.toLocaleString() + '원';
+    document.getElementById('totalCount').textContent = totalCount.toLocaleString() + '건';
+}
+
+// 테이블 렌더링
+function renderSalesTable(data) {
+    const tbody = document.getElementById('salesTableBody');
+
+    // 정렬 적용
+    const sortedData = sortData(
+        data,
+        sortState.sales.column,
+        sortState.sales.direction
+    );
+
+    tbody.innerHTML = sortedData.map(item => `
+        <tr>
+            <td>${item.period}</td>
+            <td>${item.count.toLocaleString()} 건</td>
+            <td class="alignRight">${item.total.toLocaleString()}</td>
+        </tr>
+    `).join('');
+}
+
 // 로그아웃
 document.getElementById('logoutBtn').addEventListener('click', () => {
     sessionStorage.removeItem('isLoggedIn');
@@ -1024,3 +1111,4 @@ loadCustomers();
 loadServices();
 setTodayDate();  // 날짜 먼저 설정
 loadHistory();
+initializeSalesPage();  // 매출관리 초기화 추가
