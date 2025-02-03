@@ -380,6 +380,12 @@ th:hover {
     color: #ffd700;
 }
 
+@media (max-width: 1370px) {
+    .customer-container {
+        flex-direction: column;
+    }
+}
+
 /* 반응형 디자인 */
 @media (max-width: 768px) {
     .logo-container {
