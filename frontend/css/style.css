@@ -230,14 +230,17 @@ th.sort-desc::after {
     height: 0;
     border-left: 5px solid transparent;
     border-right: 5px solid transparent;
+    opacity: 1;
 }
 
 th.sort-asc::after {
     border-bottom: 5px solid #333;
+    border-top: none;
 }
 
 th.sort-desc::after {
     border-top: 5px solid #333;
+    border-bottom: none;
 }
 
 th:hover {

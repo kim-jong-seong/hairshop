@@ -109,39 +109,34 @@ closeBtn.addEventListener('click', hideModal);
 
 // 정렬 함수
 function sortData(data, column, direction) {
+    if (direction === 'default') {
+        return data;
+    }
+
     return [...data].sort((a, b) => {
         let valueA = a[column];
         let valueB = b[column];
 
-        // 매출관리 테이블의 특수한 정렬 처리
-        if (column === 'period') {
-            // period는 문자열이지만 날짜순으로 정렬되어야 함
-            valueA = a[column].replace('년', '').replace('월', '').replace(' ', '');
-            valueB = b[column].replace('년', '').replace('월', '').replace(' ', '');
-        } 
-        else if (column === 'count' || column === 'total') {
-            // 숫자 정렬
-            valueA = Number(valueA);
-            valueB = Number(valueB);
-        }
-        // 기존 정렬 로직
-        else if (column === 'created_at') {
-            valueA = new Date(valueA);
-            valueB = new Date(valueB);
-        }
-        else if (column === 'amount') {
-            valueA = Number(valueA);
-            valueB = Number(valueB);
-        }
-        else {
+        // 특수한 정렬 처리
+        if (column === 'created_at') {
+            valueA = new Date(valueA).getTime();
+            valueB = new Date(valueB).getTime();
+        } else if (column === 'amount' || column === 'price' || 
+                   column === 'count' || column === 'total') {
+            valueA = Number(valueA) || 0;
+            valueB = Number(valueB) || 0;
+        } else if (column === 'period') {
+            valueA = a[column].replace(/[^0-9]/g, '');
+            valueB = b[column].replace(/[^0-9]/g, '');
+        } else {
             valueA = String(valueA || '').toLowerCase();
             valueB = String(valueB || '').toLowerCase();
         }
 
         if (direction === 'asc') {
-            return valueA > valueB ? 1 : -1;
+            return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
         } else {
-            return valueA < valueB ? 1 : -1;
+            return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
         }
     });
 }
@@ -190,6 +185,53 @@ async function fetchHistory(customerId = null) {
     return await response.json();
 }
 
+function updateSortIndicators(headers, currentColumn, direction) {
+    headers.forEach(header => {
+        header.classList.remove('sort-asc', 'sort-desc');
+        if (direction !== 'default') {
+            const columnKey = TABLE_COLUMNS[header.closest('table').id.replace('TableBody', '')].find(
+                (col, index) => index === Array.from(headers).indexOf(header)
+            )?.key;
+            
+            if (columnKey === currentColumn) {
+                header.classList.add(`sort-${direction}`);
+            }
+        }
+    });
+}
+
+// 기본 정렬 컬럼 가져오기
+function getDefaultSortColumn(sortKey) {
+    switch (sortKey) {
+        case 'history':
+            return 'created_at';
+        case 'customers':
+            return 'name';
+        case 'customerHistory':
+            return 'created_at';
+        case 'sales':
+            return 'period';
+        default:
+            return '';
+    }
+}
+
+// 기본 정렬 방향 가져오기
+function getDefaultSortDirection(sortKey) {
+    switch (sortKey) {
+        case 'history':
+            return 'desc';
+        case 'customers':
+            return 'asc';
+        case 'customerHistory':
+            return 'desc';
+        case 'sales':
+            return 'asc';
+        default:
+            return 'asc';
+    }
+}
+
 // 테이블 헤더 클릭 이벤트 설정
 function setupTableSorting(tableId, sortKey) {
     const table = document.querySelector(`#${tableId}`).closest('table');
@@ -203,7 +245,8 @@ function setupTableSorting(tableId, sortKey) {
             header.style.cursor = 'pointer';
             header.addEventListener('click', () => {
                 const column = columns[index].key;
-
+                
+                // 정렬 상태 업데이트
                 if (sortState[sortKey].column === column) {
                     sortState[sortKey].direction = toggleSortDirection(sortState[sortKey].direction);
                 } else {
@@ -213,11 +256,66 @@ function setupTableSorting(tableId, sortKey) {
 
                 // 정렬 표시 업데이트
                 headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
-                header.classList.add(`sort-${sortState[sortKey].direction}`);
+                if (sortState[sortKey].direction !== 'default') {
+                    header.classList.add(`sort-${sortState[sortKey].direction}`);
+                }
 
-                // 매출관리 테이블 다시 렌더링
-                if (sortKey === 'sales') {
-                    loadSalesData();
+                // 데이터 정렬 및 테이블 업데이트
+                let dataToSort;
+                switch (sortKey) {
+                    case 'history':
+                        dataToSort = [...cachedData.history];
+                        if (mainSearchCriteria.date || mainSearchCriteria.name || 
+                            mainSearchCriteria.gender || mainSearchCriteria.phone || 
+                            mainSearchCriteria.service || mainSearchCriteria.memo) {
+                            dataToSort = dataToSort.filter(item => {
+                                const dateMatch = !mainSearchCriteria.date || 
+                                    item.created_at.startsWith(mainSearchCriteria.date);
+                                const nameMatch = !mainSearchCriteria.name || 
+                                    item.customer_name?.toLowerCase().includes(mainSearchCriteria.name);
+                                const genderMatch = !mainSearchCriteria.gender || 
+                                    item.gender === mainSearchCriteria.gender;
+                                const phoneMatch = !mainSearchCriteria.phone || 
+                                    item.phone?.toLowerCase().includes(mainSearchCriteria.phone);
+                                const serviceMatch = !mainSearchCriteria.service || 
+                                    item.service_name?.toLowerCase().includes(mainSearchCriteria.service);
+                                const memoMatch = !mainSearchCriteria.memo || 
+                                    item.memo?.toLowerCase().includes(mainSearchCriteria.memo);
+
+                                return dateMatch && nameMatch && genderMatch && phoneMatch && 
+                                       serviceMatch && memoMatch;
+                            });
+                        }
+                        renderHistoryTable(sortData(dataToSort, column, sortState[sortKey].direction));
+                        break;
+
+                    case 'customers':
+                        dataToSort = [...cachedData.customers];
+                        if (searchCriteria.name || searchCriteria.phone || searchCriteria.memo) {
+                            dataToSort = dataToSort.filter(customer => {
+                                const nameMatch = !searchCriteria.name || 
+                                    customer.name?.toLowerCase().includes(searchCriteria.name);
+                                const phoneMatch = !searchCriteria.phone || 
+                                    customer.phone?.toLowerCase().includes(searchCriteria.phone);
+                                const memoMatch = !searchCriteria.memo || 
+                                    customer.memo?.toLowerCase().includes(searchCriteria.memo);
+                                return nameMatch && phoneMatch && memoMatch;
+                            });
+                        }
+                        renderCustomerTable(sortData(dataToSort, column, sortState[sortKey].direction));
+                        break;
+
+                    case 'customerHistory':
+                        renderCustomerHistoryTable(sortData(
+                            currentHistoryData,
+                            column,
+                            sortState[sortKey].direction
+                        ));
+                        break;
+
+                    case 'sales':
+                        loadSalesData();
+                        break;
                 }
             });
         }
