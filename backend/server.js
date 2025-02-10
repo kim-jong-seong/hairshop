@@ -55,11 +55,20 @@ async function initializeDB() {
 // 로그인 API
 app.post('/api/login', (req, res) => {
     const { password } = req.body;
-    if (password === '1234') {
-        res.json({ success: true });
+    if (password === '1234' || password === 'admin') {
+        res.json({ 
+            success: true, 
+            isAdmin: password === 'admin'  // 관리자 여부 전달
+        });
     } else {
         res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' });
     }
+});
+
+// 데이터베이스 다운로드 API 추가
+app.get('/api/database/download', (req, res) => {
+    const dbPath = path.join(__dirname, 'database.db');
+    res.download(dbPath);
 });
 
 // 고객 관련 API
@@ -275,7 +284,7 @@ app.get('/api/sales', async (req, res) => {
                 groupFormat = '%Y년 %m월';
                 break;
             default:
-                groupFormat = '%Y-%m-%d';
+                groupFormat = '%Y-%m-%d'; // 일별은 기본 날짜 형식으로 반환
         }
 
         const query = `

@@ -1,3 +1,32 @@
+// 페이지 로드 시 관리자 체크
+window.addEventListener('DOMContentLoaded', () => {
+    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+    const adminElements = document.querySelectorAll('.admin-only');
+    
+    adminElements.forEach(el => {
+        el.classList.toggle('hidden', !isAdmin);
+    });
+});
+
+// 데이터베이스 다운로드 버튼 이벤트
+document.getElementById('downloadDbBtn')?.addEventListener('click', async () => {
+    try {
+        const response = await fetch('/api/database/download');
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'database.db';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error('Error:', error);
+        alert('데이터베이스 다운로드에 실패했습니다.');
+    }
+});
+
 // 로그인 상태 체크
 function checkLogin() {
     const isLoggedIn = sessionStorage.getItem('isLoggedIn');
@@ -1159,6 +1188,7 @@ function updateSalesSummary(data) {
 // 테이블 렌더링
 function renderSalesTable(data) {
     const tbody = document.getElementById('salesTableBody');
+    const viewType = document.getElementById('salesViewType').value;
 
     // 정렬 적용
     const sortedData = sortData(
@@ -1167,13 +1197,47 @@ function renderSalesTable(data) {
         sortState.sales.direction
     );
 
-    tbody.innerHTML = sortedData.map(item => `
-        <tr>
-            <td>${item.period}</td>
-            <td>${item.count.toLocaleString()} 건</td>
-            <td class="alignRight">${item.total.toLocaleString()}</td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = sortedData.map(item => {
+        let displayPeriod = item.period;
+        let periodClass = '';
+        
+        if (viewType === 'day') {
+            const { formattedDate, dayClass } = formatDateWithDay(item.period);
+            displayPeriod = formattedDate;
+            periodClass = dayClass;
+        }
+
+        return `
+            <tr>
+                <td class="${periodClass}">${displayPeriod}</td>
+                <td>${item.count.toLocaleString()} 건</td>
+                <td class="alignRight">${item.total.toLocaleString()}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function formatDateWithDay(dateStr) {
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    const dayOfWeek = days[date.getDay()];
+    
+    // 요일별 스타일 클래스 결정
+    let dayClass = '';
+    if (date.getDay() === 0) { // 일요일
+        dayClass = 'text-red-600';
+    } else if (date.getDay() === 6) { // 토요일
+        dayClass = 'text-blue-600';
+    }
+    
+    return {
+        formattedDate: `${year}-${month}-${day} (${dayOfWeek})`,
+        dayClass: dayClass
+    };
 }
 
 // 로그아웃

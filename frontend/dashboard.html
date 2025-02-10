@@ -18,6 +18,7 @@
                 <div class="nav-item" data-page="services">시술항목관리</div>
                 <div class="nav-item" data-page="customers">고객시술관리</div>
                 <div class="nav-item" data-page="sales">매출현황</div>
+                <div class="nav-item admin-only hidden" data-page="admin">관리자메뉴</div>
             </div>
             <button id="logoutBtn" class="logout-btn">로그아웃</button>
         </nav>
@@ -216,6 +217,16 @@
                         <div class="card-title">총 매출</div>
                         <div class="card-amount" id="totalSales">0원</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- 관리자 페이지 -->
+            <div id="admin-page" class="page hidden">
+                <h2>관리자 메뉴</h2>
+                <div class="admin-menu-container">
+                    <button id="downloadDbBtn" class="add-button">
+                        데이터베이스 다운로드
+                    </button>
                 </div>
             </div>
         </main>

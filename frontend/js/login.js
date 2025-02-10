@@ -16,11 +16,10 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         const data = await response.json();
         
         if (data.success) {
-            // 로그인 성공
             sessionStorage.setItem('isLoggedIn', 'true');
-            window.location.href = '/dashboard.html';  // 경로 수정
+            sessionStorage.setItem('isAdmin', data.isAdmin);  // 관리자 여부 저장
+            window.location.href = '/dashboard.html';
         } else {
-            // 로그인 실패
             errorMessage.textContent = data.message || '로그인에 실패했습니다.';
             errorMessage.style.display = 'block';
             document.getElementById('password').value = '';

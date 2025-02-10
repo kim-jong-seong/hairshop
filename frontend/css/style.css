@@ -646,3 +646,27 @@ input[type="datetime-local"]:focus {
 .date-range span {
     color: #666;
 }
+
+.admin-menu-container {
+    padding: 20px;
+    background-color: white;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+#downloadDbBtn {
+    padding: 12px 24px;
+    font-size: 1.1em;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.text-red-600 {
+    color: #dc2626;
+}
+
+.text-blue-600 {
+    color: #2563eb;
+}
