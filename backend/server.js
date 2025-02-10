@@ -5,6 +5,7 @@ const { open } = require('sqlite');
 const path = require('path');
 const { create } = require('domain');
 process.env.TZ = 'Asia/Seoul';
+const createCsvStringifier = require('csv-writer').createObjectCsvStringifier;
 
 const app = express();
 
@@ -302,6 +303,77 @@ app.get('/api/sales', async (req, res) => {
         res.json(results);
     } catch (err) {
         console.error('Sales query error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/export/csv', async (req, res) => {
+    try {
+        // 모든 데이터 조회
+        const customers = await db.all('SELECT * FROM customers ORDER BY id');
+        const services = await db.all('SELECT * FROM services ORDER BY id');
+        const history = await db.all(`
+            SELECT 
+                h.*,
+                c.name as customer_name,
+                s.name as service_name
+            FROM history h
+            JOIN customers c ON h.customer_id = c.id
+            JOIN services s ON h.service_id = s.id
+            ORDER BY h.id
+        `);
+
+        // 각 테이블별 CSV 생성
+        const customersStringifier = createCsvStringifier({
+            header: [
+                {id: 'id', title: 'ID'},
+                {id: 'name', title: '이름'},
+                {id: 'gender', title: '성별'},
+                {id: 'phone', title: '전화번호'},
+                {id: 'memo', title: '메모'},
+                {id: 'created_at', title: '등록일'}
+            ]
+        });
+
+        const servicesStringifier = createCsvStringifier({
+            header: [
+                {id: 'id', title: 'ID'},
+                {id: 'name', title: '시술명'},
+                {id: 'price', title: '금액'},
+                {id: 'is_favorite', title: '즐겨찾기'},
+                {id: 'created_at', title: '등록일'}
+            ]
+        });
+
+        const historyStringifier = createCsvStringifier({
+            header: [
+                {id: 'id', title: 'ID'},
+                {id: 'created_at', title: '날짜'},
+                {id: 'customer_name', title: '고객명'},
+                {id: 'service_name', title: '시술명'},
+                {id: 'amount', title: '금액'},
+                {id: 'memo', title: '메모'}
+            ]
+        });
+
+        // ZIP 파일 생성
+        const zip = new require('jszip')();
+        
+        zip.file('customers.csv', customersStringifier.getHeaderString() + 
+                                customersStringifier.stringifyRecords(customers));
+        zip.file('services.csv', servicesStringifier.getHeaderString() + 
+                               servicesStringifier.stringifyRecords(services));
+        zip.file('history.csv', historyStringifier.getHeaderString() + 
+                              historyStringifier.stringifyRecords(history));
+
+        const zipContent = await zip.generateAsync({type: 'nodebuffer'});
+
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', 'attachment; filename=data.zip');
+        res.send(zipContent);
+
+    } catch (err) {
+        console.error('Export error:', err);
         res.status(500).json({ error: err.message });
     }
 });

@@ -1240,6 +1240,24 @@ function formatDateWithDay(dateStr) {
     };
 }
 
+document.getElementById('downloadCsvBtn')?.addEventListener('click', async () => {
+    try {
+        const response = await fetch('/api/export/csv');
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'data.zip';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error('Error:', error);
+        alert('CSV 다운로드에 실패했습니다.');
+    }
+});
+
 // 로그아웃
 document.getElementById('logoutBtn').addEventListener('click', () => {
     sessionStorage.removeItem('isLoggedIn');

@@ -670,3 +670,12 @@ input[type="datetime-local"]:focus {
 .text-blue-600 {
     color: #2563eb;
 }
+
+.admin-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.admin-buttons button {
+    flex: 1;
+}
