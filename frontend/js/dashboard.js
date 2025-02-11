@@ -615,7 +615,7 @@ function showCustomerEditModal(customer) {
             <input type="hidden" name="id" value="${customer.id}">
             <div class="form-group">
                 <label>이름</label>
-                <input type="text" name="name" required value="${customer.name}" style="background-color: #eee;">
+                <input type="text" name="name" required value="${customer.name}">
             </div>
             <div class="form-group">
                 <label>성별</label>

@@ -215,7 +215,7 @@ tbody tr:hover {
 }
 
 tr.selected {
-    background-color: #f5d59a !important;
+    background-color: #fffacb !important;
 }
 
 /* 테이블 정렬 스타일 */
