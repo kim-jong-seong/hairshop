@@ -383,53 +383,6 @@ th:hover {
     color: #ffd700;
 }
 
-@media (max-width: 1370px) {
-    .customer-container {
-        flex-direction: column;
-    }
-}
-
-/* 반응형 디자인 */
-@media (max-width: 768px) {
-    .logo-container {
-        margin: 30px 0 0;
-    }
-
-    .dash_logo {
-        width: 280px;
-    }
-
-    .dashboard-container {
-        flex-direction: column;
-    }
-    
-    .sidebar {
-        width: 100%;
-        padding: 10px;
-    }
-    
-    .page {
-        height: calc(100vh + 150px);
-    }
-    
-    .customer-container {
-        flex-direction: column;
-    }
-    
-    .customer-history {
-        margin-top: 20px;
-    }
-    
-    .modal-content {
-        width: 95%;
-        margin: 10px;
-    }
-
-    th, td {
-        padding: 8px;
-    }
-}
-
 /* 스크롤바 스타일 */
 ::-webkit-scrollbar {
     width: 8px;
@@ -682,4 +635,68 @@ input[type="datetime-local"]:focus {
 
 textarea {
     resize: vertical;
+}
+
+@media (max-width: 1370px) {
+    .customer-container {
+        flex-direction: column;
+    }
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .logo-container {
+        margin: 30px 0 0;
+    }
+
+    .dash_logo {
+        width: 280px;
+    }
+
+    .dashboard-container {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        padding: 10px;
+    }
+    
+    .page {
+        height: calc(100vh + 150px);
+    }
+    
+    .customer-container {
+        flex-direction: column;
+    }
+    
+    .customer-history {
+        margin-top: 20px;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 10px;
+    }
+
+    th, td {
+        padding: 8px;
+    }
+
+    .search-fields {
+        flex-direction: column;
+    }
+
+    .card-amount {
+        font-size: 1.1rem;
+    }
+
+    .nav-items {
+        margin-bottom: 15px;
+    }
+
+    #downloadDbBtn, #downloadCsvBtn {
+        font-size: 0.9rem;
+        word-break: keep-all;
+    }
 }
