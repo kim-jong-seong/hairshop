@@ -1,3 +1,33 @@
+// 모바일 아이콘 정의
+const ICONS = {
+    calendar: `<svg class="icon" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+    </svg>`,
+    user: `<svg class="icon" viewBox="0 0 24 24">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+    </svg>`,
+    service: `<svg class="icon" viewBox="0 0 24 24">
+        <line x1="4" y1="9" x2="20" y2="9"></line>
+        <line x1="4" y1="15" x2="20" y2="15"></line>
+        <line x1="10" y1="3" x2="8" y2="21"></line>
+        <line x1="16" y1="3" x2="14" y2="21"></line>
+    </svg>`,
+    phone: `<svg class="icon" viewBox="0 0 24 24">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+    </svg>`,
+    memo: `<svg class="icon" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+    </svg>`
+};
+
 // 페이지 로드 시 관리자 체크
 window.addEventListener('DOMContentLoaded', () => {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
@@ -777,8 +807,106 @@ document.getElementById('addServiceBtn').addEventListener('click', async () => {
     }
 });
 
+// 필터링된 데이터 가져오기
+function filterHistoryData() {
+    return cachedData.history.filter(item => {
+        const dateMatch = !mainSearchCriteria.date || 
+            item.created_at.startsWith(mainSearchCriteria.date);
+        const nameMatch = !mainSearchCriteria.name || 
+            item.customer_name?.toLowerCase().includes(mainSearchCriteria.name);
+        const genderMatch = !mainSearchCriteria.gender || 
+            item.gender === mainSearchCriteria.gender;
+        const phoneMatch = !mainSearchCriteria.phone || 
+            item.phone?.toLowerCase().includes(mainSearchCriteria.phone);
+        const serviceMatch = !mainSearchCriteria.service || 
+            item.service_name?.toLowerCase().includes(mainSearchCriteria.service);
+        const memoMatch = !mainSearchCriteria.memo || 
+            item.memo?.toLowerCase().includes(mainSearchCriteria.memo);
+
+        return dateMatch && nameMatch && genderMatch && phoneMatch && 
+               serviceMatch && memoMatch;
+    });
+}
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+        // 기존 전체내역 렌더링
+        const currentHistoryData = filterHistoryData();
+        renderHistoryTable(currentHistoryData);
+        
+        // 고객 시술내역 렌더링 (데이터가 있는 경우에만)
+        if (currentHistoryData.length > 0) {
+            renderCustomerHistoryTable(currentHistoryData);
+        }
+    }, 250);
+});
+
 // 렌더링 함수들
 function renderHistoryTable(data) {
+    if (window.innerWidth <= 768) {
+        renderMobileHistory(data);
+    } else {
+        renderDesktopHistory(data);
+    }
+}
+
+function renderMobileHistory(data) {
+    const container = document.querySelector('.table-container');
+    
+    // 모바일 히스토리 리스트 컨테이너가 없으면 생성
+    let mobileList = container.querySelector('.mobile-history-list');
+    if (!mobileList) {
+        mobileList = document.createElement('div');
+        mobileList.className = 'mobile-history-list';
+        container.appendChild(mobileList);
+    }
+
+    mobileList.innerHTML = data.map(item => `
+        <div class="history-card" data-id="${item.id}" data-customer-id="${item.customer_id}" data-service-id="${item.service_id}">
+            <div class="card-header">
+                <div class="date">
+                    ${ICONS.calendar}
+                    ${formatDate(item.created_at)}
+                </div>
+                <div class="amount">${item.amount.toLocaleString()}원</div>
+            </div>
+            <div class="info-row">
+                ${ICONS.user}
+                <span>${item.customer_name}</span>
+                ${item.gender ? `<span class="gender-badge">${item.gender}</span>` : ''}
+            </div>
+            <div class="info-row">
+                ${ICONS.service}
+                <span>${item.service_name}</span>
+            </div>
+            ${item.phone ? `
+            <div class="info-row">
+                ${ICONS.phone}
+                <span>${item.phone}</span>
+            </div>
+            ` : ''}
+            ${item.memo ? `
+            <div class="info-row">
+                ${ICONS.memo}
+                <span class="memo">${item.memo}</span>
+            </div>
+            ` : ''}
+        </div>
+    `).join('');
+
+    // 더블클릭 이벤트 추가
+    mobileList.querySelectorAll('.history-card').forEach(card => {
+        card.addEventListener('dblclick', () => {
+            const historyId = card.getAttribute('data-id');
+            const history = data.find(item => item.id === parseInt(historyId));
+            showHistoryEditModal(history);
+        });
+    });
+}
+
+function renderDesktopHistory(data) {
     const tbody = document.getElementById('historyTableBody');
     tbody.innerHTML = data.map((item, index) => `
         <tr data-id="${item.id}" data-customer-id="${item.customer_id}" data-service-id="${item.service_id}">
@@ -957,6 +1085,57 @@ function renderCustomerTable(data) {
 }
 
 function renderCustomerHistoryTable(data) {
+    if (window.innerWidth <= 768) {
+        renderMobileCustomerHistory(data);
+    } else {
+        renderDesktopCustomerHistory(data);
+    }
+}
+
+function renderMobileCustomerHistory(data) {
+    const container = document.querySelector('.customer-history .table-container');
+    
+    // 모바일 히스토리 리스트 컨테이너가 없으면 생성
+    let mobileList = container.querySelector('.customer-history-list');
+    if (!mobileList) {
+        mobileList = document.createElement('div');
+        mobileList.className = 'customer-history-list';
+        container.appendChild(mobileList);
+    }
+
+    mobileList.innerHTML = data.map(item => `
+        <div class="customer-history-card" data-id="${item.id}">
+            <div class="card-header">
+                <div class="date">
+                    ${ICONS.calendar}
+                    ${formatDate(item.created_at)}
+                </div>
+                <div class="amount">${item.amount.toLocaleString()}원</div>
+            </div>
+            <div class="info-row">
+                ${ICONS.service}
+                <span>${item.service_name}</span>
+            </div>
+            ${item.memo ? `
+            <div class="info-row">
+                ${ICONS.memo}
+                <span class="memo">${item.memo}</span>
+            </div>
+            ` : ''}
+        </div>
+    `).join('');
+
+    // 더블클릭 이벤트 추가
+    mobileList.querySelectorAll('.customer-history-card').forEach(card => {
+        card.addEventListener('dblclick', () => {
+            const historyId = card.getAttribute('data-id');
+            const history = data.find(item => item.id === parseInt(historyId));
+            showHistoryEditModal(history);
+        });
+    });
+}
+
+function renderDesktopCustomerHistory(data) {
     const tbody = document.getElementById('customerHistoryTableBody');
     tbody.innerHTML = data.map((item, index) => `
         <tr data-id="${item.id}">
@@ -1062,18 +1241,6 @@ function showServiceEditModal(serviceId, field, currentValue) {
 
 // 데이터 로드 함수들
 let currentHistoryData = []; // 현재 고객의 히스토리 데이터 저장
-
-async function loadHistory() {
-    if (cachedData.history.length === 0) {
-        cachedData.history = await fetchHistory();
-    }
-    renderHistoryTable(sortData(
-        cachedData.history,
-        sortState.history.column,
-        sortState.history.direction
-    ));
-    setupTableSorting('historyTableBody', 'history');
-}
 
 async function loadCustomers() {
     if (cachedData.customers.length === 0) {
