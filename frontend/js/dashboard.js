@@ -832,9 +832,13 @@ let resizeTimer;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-        // 기존 전체내역 렌더링
+        // 전체내역 렌더링
         const currentHistoryData = filterHistoryData();
         renderHistoryTable(currentHistoryData);
+        
+        // 고객 목록 렌더링
+        const filteredCustomers = filterCustomerData();
+        renderCustomerTable(filteredCustomers);
         
         // 고객 시술내역 렌더링 (데이터가 있는 경우에만)
         if (currentHistoryData.length > 0) {
@@ -842,6 +846,19 @@ window.addEventListener('resize', () => {
         }
     }, 250);
 });
+
+// 고객 필터링 데이터 가져오기
+function filterCustomerData() {
+    return cachedData.customers.filter(customer => {
+        const nameMatch = !searchCriteria.name || 
+            customer.name?.toLowerCase().includes(searchCriteria.name);
+        const phoneMatch = !searchCriteria.phone || 
+            customer.phone?.toLowerCase().includes(searchCriteria.phone);
+        const memoMatch = !searchCriteria.memo || 
+            customer.memo?.toLowerCase().includes(searchCriteria.memo);
+        return nameMatch && phoneMatch && memoMatch;
+    });
+}
 
 // 렌더링 함수들
 function renderHistoryTable(data) {
@@ -1049,6 +1066,80 @@ function applySearch() {
 }
 
 function renderCustomerTable(data) {
+    if (window.innerWidth <= 768) {
+        renderMobileCustomerList(data);
+    } else {
+        renderDesktopCustomerList(data);
+    }
+}
+
+function renderMobileCustomerList(data) {
+    const container = document.querySelector('.customer-list .table-container');
+    
+    // 모바일 고객 리스트 컨테이너가 없으면 생성
+    let mobileList = container.querySelector('.mobile-customer-list');
+    if (!mobileList) {
+        mobileList = document.createElement('div');
+        mobileList.className = 'mobile-customer-list';
+        container.appendChild(mobileList);
+    }
+
+    mobileList.innerHTML = data.map(customer => `
+        <div class="customer-list-card" data-id="${customer.id}">
+            <div class="customer-name">
+                ${customer.name}
+                ${customer.gender ? `<span class="gender-badge">${customer.gender}</span>` : ''}
+            </div>
+            ${customer.phone ? `
+            <div class="info-row">
+                ${ICONS.phone}
+                <span>${customer.phone}</span>
+            </div>
+            ` : ''}
+            ${customer.memo ? `
+            <div class="info-row">
+                ${ICONS.memo}
+                <span class="memo">${customer.memo}</span>
+            </div>
+            ` : ''}
+        </div>
+    `).join('');
+
+    // 기존 선택된 고객 표시
+    const selectedRow = document.querySelector('#customerTableBody tr.selected');
+    if (selectedRow) {
+        const selectedId = selectedRow.getAttribute('data-id');
+        mobileList.querySelector(`.customer-list-card[data-id="${selectedId}"]`)?.classList.add('selected');
+    }
+
+    // 클릭 이벤트 (고객 선택)
+    mobileList.querySelectorAll('.customer-list-card').forEach(card => {
+        card.addEventListener('click', async () => {
+            const customerId = card.getAttribute('data-id');
+            
+            // 선택 상태 표시
+            mobileList.querySelectorAll('.customer-list-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+
+            // 시술 내역 로드
+            currentHistoryData = await fetchHistory(customerId);
+            renderCustomerHistoryTable(sortData(
+                currentHistoryData,
+                sortState.customerHistory.column,
+                sortState.customerHistory.direction
+            ));
+        });
+
+        // 더블클릭 이벤트 (고객 정보 수정)
+        card.addEventListener('dblclick', () => {
+            const customerId = card.getAttribute('data-id');
+            const customer = data.find(c => c.id === parseInt(customerId));
+            showCustomerEditModal(customer);
+        });
+    });
+}
+
+function renderDesktopCustomerList(data) {
     const tbody = document.getElementById('customerTableBody');
     tbody.innerHTML = data.map((customer, index) => `
         <tr data-id="${customer.id}">
@@ -1060,7 +1151,7 @@ function renderCustomerTable(data) {
         </tr>
     `).join('');
 
-    // 고객 클릭 이벤트는 그대로 유지
+    // 기존 이벤트 리스너 추가
     tbody.querySelectorAll('tr').forEach(row => {
         row.addEventListener('click', async () => {
             const customerId = row.getAttribute('data-id');
@@ -1075,7 +1166,6 @@ function renderCustomerTable(data) {
             row.classList.add('selected');
         });
 
-        // 더블클릭 이벤트 추가
         row.addEventListener('dblclick', () => {
             const customerId = row.getAttribute('data-id');
             const customer = data.find(c => c.id === parseInt(customerId));
