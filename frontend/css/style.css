@@ -687,10 +687,6 @@ textarea {
         flex-direction: column;
     }
 
-    .card-amount {
-        font-size: 1.1rem;
-    }
-
     .nav-items {
         margin-bottom: 15px;
     }
@@ -700,7 +696,12 @@ textarea {
         word-break: keep-all;
     }
 
-    /* 여기서부터 새로 추가되는 히스토리 카드 스타일 */
+    /* 테이블 헤더 폰트 크기 조정 */
+    .table-container th {
+        font-size: 0.9rem;
+    }
+
+    /* 카드 관련 스타일 */
     .history-card {
         background-color: white;
         padding: 1rem;
@@ -714,19 +715,20 @@ textarea {
         justify-content: space-between;
         align-items: center;
         margin-bottom: 0.75rem;
+        font-size: 0.9rem;
     }
 
     .date {
         display: flex;
         align-items: center;
         color: #6b7280;
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         gap: 0.25rem;
     }
 
     .amount {
         font-weight: bold;
-        font-size: 1.125rem;
+        font-size: 1rem;
     }
 
     .info-row {
@@ -734,24 +736,25 @@ textarea {
         align-items: center;
         margin-bottom: 0.5rem;
         gap: 0.5rem;
+        font-size: 0.85rem;
     }
 
     .gender-badge {
         margin-left: 0.5rem;
-        padding: 0.125rem 0.5rem;
+        padding: 0.1rem 0.4rem;
         background-color: #f3f4f6;
         border-radius: 0.25rem;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
 
     .memo {
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         color: #6b7280;
     }
 
     .icon {
-        width: 1rem;
-        height: 1rem;
+        width: 0.9rem;
+        height: 0.9rem;
         color: #6b7280;
         stroke: currentColor;
         stroke-width: 2;
@@ -762,21 +765,21 @@ textarea {
 
     /* 전체내역 페이지 */
     #main-page .table-container {
-        height: 600px;  /* 고정 높이 설정 */
+        height: 600px;
         overflow-y: auto;
         padding: 1rem 1rem 0;
     }
 
     /* 고객시술관리 - 고객목록 */
     #customers-page .customer-list .table-container {
-        height: 400px;  /* 고정 높이 설정 */
+        height: 400px;
         overflow-y: auto;
         padding: 1rem 1rem 0;
     }
 
     /* 고객시술관리 - 시술내역 */
     #customers-page .customer-history .table-container {
-        height: 400px;  /* 고정 높이 설정 */
+        height: 400px;
         overflow-y: auto;
         padding: 1rem 1rem 0;
     }
@@ -828,7 +831,7 @@ textarea {
     }
 
     .customer-list-card .customer-name {
-        font-size: 1.1rem;
+        font-size: 0.95rem;
         font-weight: 500;
         margin-bottom: 0.5rem;
     }
@@ -839,6 +842,10 @@ textarea {
         margin-bottom: 0.5rem;
         gap: 0.5rem;
         color: #6b7280;
+    }
+
+    .card-amount {
+        font-size: 1rem;
     }
 }
 
