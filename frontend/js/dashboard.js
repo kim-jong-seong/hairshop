@@ -138,8 +138,18 @@ function changePage(pageId) {
     navItems.forEach(item => {
         item.classList.toggle('active', item.getAttribute('data-page') === pageId);
     });
+
+    document.querySelectorAll('.mobile-nav-item').forEach(item => {
+        item.classList.toggle('active', item.getAttribute('data-page') === pageId);
+    });
+
     pages.forEach(page => {
         page.classList.toggle('hidden', page.id !== pageId + '-page');
+    });
+
+    // 페이지 전환 시 스크롤을 맨 위로
+    document.querySelector('.main-content').scrollTo({
+        top: 0
     });
 
     // 메인화면으로 전환될 때 applyMainSearch 실행
