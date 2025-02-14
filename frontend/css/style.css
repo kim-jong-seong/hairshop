@@ -1024,6 +1024,10 @@ textarea {
     .historyForm .addButtonWrap .add-button {
         margin-top: 5px;
     }
+
+    select {
+        background-color: #ffffff;
+    }
  
     textarea {
         resize: none;
