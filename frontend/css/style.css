@@ -999,17 +999,27 @@ textarea {
     .searchDateInput {
         font-size: 11px;
     }
+
+    .modal-content {
+        padding: 10px 20px;
+    }
+
+    .modal-body select {
+        font-size: 11px;
+    }
  
     .modal-body input {
         height: 37px;
+        font-size: 11px;
     }
  
     textarea {
         resize: none;
+        height: 45px;
     }
  
     .form-group {
-        margin-bottom: 1rem;
+        margin-bottom: 0.3rem;
     }
  
     /* 모바일 네비게이션 */
