@@ -645,6 +645,10 @@ textarea {
 
 /* 반응형 디자인 */
 @media (max-width: 768px) {
+    .logo {
+        width: 250px;
+    }
+
     .logo-container {
         margin: 30px 0 0;
     }
@@ -698,6 +702,10 @@ textarea {
 
     /* 테이블 헤더 폰트 크기 조정 */
     .table-container th {
+        font-size: 0.7rem;
+    }
+
+    .table-container td {
         font-size: 0.7rem;
     }
 
