@@ -1036,6 +1036,7 @@ textarea {
     textarea {
         resize: none;
         height: 45px;
+        font-size: 11px;
     }
  
     .form-group {
