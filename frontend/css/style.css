@@ -286,10 +286,6 @@ th:hover {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 20px;
-    background-color: white;
-    border-radius: 5px;
-    border: 1px solid #ddd;
     overflow: hidden;
 }
 
