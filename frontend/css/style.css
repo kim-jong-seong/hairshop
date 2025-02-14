@@ -833,7 +833,13 @@ textarea {
     }
 
     .customer-list-card.selected {
-        background-color: #fffacb;
+        border: 1px solid #3c82f6;
+        background-color: #eff6ff;
+        color: #2051d9;
+    }
+
+    .customer-list-card.selected svg, .customer-list-card.selected .info-row, .customer-list-card.selected .info-row span {
+        color:#2051d9;
     }
 
     .mobile-customer-list {
