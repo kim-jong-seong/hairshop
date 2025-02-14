@@ -317,6 +317,7 @@ th:hover {
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 5px;
+    font-size: 14px;
 }
 
 /* 모달 스타일 */
@@ -859,6 +860,10 @@ textarea {
 
     .card-amount {
         font-size: 0.8rem;
+    }
+
+    .searchDateInput {
+        font-size: 11px;
     }
 }
 
