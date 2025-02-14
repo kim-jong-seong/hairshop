@@ -449,18 +449,31 @@ function getCurrentDateTime() {
 
 // 시술 내역 추가 모달
 document.getElementById('addHistoryBtn').addEventListener('click', async () => {
-    // 선택된 고객 확인
-    const selectedRow = document.querySelector('#customerTableBody tr.selected');
-    if (!selectedRow) {
-        alert('고객을 먼저 선택해주세요.');
-        return;
+    // 기존 선택된 고객 확인 로직을 모바일 대응으로 수정
+    let selectedCustomer;
+    if (window.innerWidth <= 768) {
+        // 모바일에서는 카드에서 선택된 고객 찾기
+        const selectedCard = document.querySelector('.mobile-customer-list .customer-list-card.selected');
+        if (!selectedCard) {
+            alert('고객을 먼저 선택해주세요.');
+            return;
+        }
+        selectedCustomerId = selectedCard.getAttribute('data-id');
+        selectedCustomer = cachedData.customers.find(c => c.id === parseInt(selectedCustomerId));
+    } else {
+        // 데스크톱에서는 기존 방식대로 테이블 row에서 찾기
+        const selectedRow = document.querySelector('#customerTableBody tr.selected');
+        if (!selectedRow) {
+            alert('고객을 먼저 선택해주세요.');
+            return;
+        }
+        selectedCustomerId = selectedRow.getAttribute('data-id');
+        selectedCustomer = cachedData.customers.find(c => c.id === parseInt(selectedCustomerId));
     }
 
-    const selectedCustomerId = selectedRow.getAttribute('data-id');
-    const selectedCustomer = cachedData.customers.find(c => c.id === parseInt(selectedCustomerId));
-
-    if (cachedData.services.length === 0) {
-        await loadServices();
+    if (!selectedCustomer) {
+        alert('고객을 먼저 선택해주세요.');
+        return;
     }
 
     // 시술 목록을 즐겨찾기 기준으로 정렬
