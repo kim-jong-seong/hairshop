@@ -692,13 +692,13 @@ textarea {
     }
 
     #downloadDbBtn, #downloadCsvBtn {
-        font-size: 0.9rem;
+        font-size: 0.7rem;
         word-break: keep-all;
     }
 
     /* 테이블 헤더 폰트 크기 조정 */
     .table-container th {
-        font-size: 0.9rem;
+        font-size: 0.7rem;
     }
 
     /* 카드 관련 스타일 */
@@ -715,20 +715,20 @@ textarea {
         justify-content: space-between;
         align-items: center;
         margin-bottom: 0.75rem;
-        font-size: 0.9rem;
+        font-size: 0.7rem;
     }
 
     .date {
         display: flex;
         align-items: center;
         color: #6b7280;
-        font-size: 0.8rem;
+        font-size: 0.7rem;
         gap: 0.25rem;
     }
 
     .amount {
         font-weight: bold;
-        font-size: 1rem;
+        font-size: 0.7rem;
     }
 
     .info-row {
@@ -736,25 +736,25 @@ textarea {
         align-items: center;
         margin-bottom: 0.5rem;
         gap: 0.5rem;
-        font-size: 0.85rem;
+        font-size: 0.7rem;
     }
 
     .gender-badge {
         margin-left: 0.5rem;
-        padding: 0.1rem 0.4rem;
+        padding: 0.1rem 0.3rem;
         background-color: #f3f4f6;
         border-radius: 0.25rem;
-        font-size: 0.7rem;
+        font-size: 0.6rem;
     }
 
     .memo {
-        font-size: 0.8rem;
+        font-size: 0.7rem;
         color: #6b7280;
     }
 
     .icon {
-        width: 0.9rem;
-        height: 0.9rem;
+        width: 0.8rem;
+        height: 0.8rem;
         color: #6b7280;
         stroke: currentColor;
         stroke-width: 2;
@@ -831,7 +831,7 @@ textarea {
     }
 
     .customer-list-card .customer-name {
-        font-size: 0.95rem;
+        font-size: 0.75rem;
         font-weight: 500;
         margin-bottom: 0.5rem;
     }
@@ -845,7 +845,7 @@ textarea {
     }
 
     .card-amount {
-        font-size: 1rem;
+        font-size: 0.8rem;
     }
 }
 
