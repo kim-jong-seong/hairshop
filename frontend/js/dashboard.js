@@ -1530,6 +1530,13 @@ document.getElementById('downloadCsvBtn')?.addEventListener('click', async () =>
 
 // 로그아웃
 document.getElementById('logoutBtn').addEventListener('click', () => {
+    if(!confirm("로그아웃 하시겠습니까?")) {return;}
+    sessionStorage.removeItem('isLoggedIn');
+    window.location.href = '/';
+});
+
+document.getElementById('logoutBtn_Mobile').addEventListener('click', () => {
+    if(!confirm("로그아웃 하시겠습니까?")) {return;}
     sessionStorage.removeItem('isLoggedIn');
     window.location.href = '/';
 });
@@ -1555,6 +1562,77 @@ async function loadHistory() {
     applyMainSearch();  // renderHistoryTable 대신 applyMainSearch 호출
     setupTableSorting('historyTableBody', 'history');
 }
+
+// 모바일 네비게이션 관련 변수
+const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
+const mobileMoreMenu = document.querySelector('.mobile-more-menu');
+const adminMenu = document.querySelector('.mobile-more-menu .admin-menu');
+let isMoreMenuOpen = false;
+
+// 초기화 시 관리자 메뉴 표시 여부 설정
+function initializeMobileNav() {
+    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+    adminMenu.classList.toggle('hidden', !isAdmin);
+    
+    // 현재 페이지에 해당하는 네비게이션 아이템 활성화
+    const currentPage = getCurrentPage();
+    updateMobileNavActive(currentPage);
+}
+
+// 모바일 네비게이션 클릭 이벤트
+mobileNavItems.forEach(item => {
+    item.addEventListener('click', () => {
+        const pageId = item.getAttribute('data-page');
+        
+        if (pageId === 'more') {
+            toggleMoreMenu();
+        } else {
+            isMoreMenuOpen = false;
+            mobileMoreMenu.classList.remove('show');
+            changePage(pageId);
+            updateMobileNavActive(pageId);
+        }
+    });
+});
+
+// 더보기 메뉴 토글
+function toggleMoreMenu() {
+    isMoreMenuOpen = !isMoreMenuOpen;
+    mobileMoreMenu.classList.toggle('show', isMoreMenuOpen);
+}
+
+// 모바일 네비게이션 활성화 상태 업데이트
+function updateMobileNavActive(pageId) {
+    mobileNavItems.forEach(item => {
+        item.classList.toggle('active', item.getAttribute('data-page') === pageId);
+    });
+}
+
+// 현재 페이지 ID 가져오기
+function getCurrentPage() {
+    const activePage = document.querySelector('.page:not(.hidden)');
+    return activePage ? activePage.id.replace('-page', '') : 'main';
+}
+
+// 관리자 메뉴 클릭 이벤트
+adminMenu.addEventListener('click', () => {
+    changePage('admin');
+    isMoreMenuOpen = false;
+    mobileMoreMenu.classList.remove('show');
+});
+
+// 화면 크기 변경 시 더보기 메뉴 닫기
+window.addEventListener('resize', () => {
+    if (window.innerWidth > 768 && isMoreMenuOpen) {
+        isMoreMenuOpen = false;
+        mobileMoreMenu.classList.remove('show');
+    }
+});
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', () => {
+    initializeMobileNav();
+});
 
 // 초기 데이터 로드
 loadCustomers();
