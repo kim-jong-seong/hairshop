@@ -867,6 +867,10 @@ textarea {
     .searchDateInput {
         font-size: 11px;
     }
+
+    .modal-body input {
+        height: 37px;
+    }
 }
 
 /* PC에서는 모바일 히스토리 리스트 숨김 */
