@@ -871,6 +871,14 @@ textarea {
     .modal-body input {
         height: 37px;
     }
+
+    textarea {
+        resize: none;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
 }
 
 /* PC에서는 모바일 히스토리 리스트 숨김 */
