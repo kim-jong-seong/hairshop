@@ -760,10 +760,6 @@ textarea {
         fill: none;
     }
 
-    .table-container {
-        padding: 0 1rem;
-    }
-
     /* 전체내역 페이지 */
     #main-page .table-container {
         height: 600px;  /* 고정 높이 설정 */
