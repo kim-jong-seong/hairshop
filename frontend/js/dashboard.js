@@ -65,7 +65,7 @@ document.getElementById('downloadApkBtn')?.addEventListener('click', async () =>
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = '이미란헤어샵.apk';
+        a.download = 'app.apk';
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
