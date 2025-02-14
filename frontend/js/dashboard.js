@@ -57,6 +57,25 @@ document.getElementById('downloadDbBtn')?.addEventListener('click', async () => 
     }
 });
 
+// apk 다운로드
+document.getElementById('downloadApkBtn')?.addEventListener('click', async () => {
+    try {
+        const response = await fetch('/api/apk/download');
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '이미란헤어샵.apk';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error('Error:', error);
+        alert('APK 다운로드에 실패했습니다.');
+    }
+});
+
 // 로그인 상태 체크
 function checkLogin() {
     const isLoggedIn = sessionStorage.getItem('isLoggedIn');
