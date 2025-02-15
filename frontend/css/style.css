@@ -748,6 +748,13 @@ textarea {
  
     .page h2 {
         font-size: 22px;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .page h3, label, button, #modalTitle, .card-title {
+        user-select: none;
+        -webkit-user-select: none;
     }
  
     .dash_logo {
@@ -781,6 +788,11 @@ textarea {
     .modal-content {
         width: 95%;
         margin: 10px;
+    }
+
+    th {
+        user-select: none;
+        -webkit-user-select: none;
     }
  
     th, td {
@@ -1061,6 +1073,8 @@ textarea {
         justify-content: space-around;
         align-items: center;
         height: 100%;
+        user-select: none;
+        -webkit-user-select: none;
     }
  
     .mobile-nav-item {
@@ -1096,6 +1110,8 @@ textarea {
         box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
         transform: translateY(150%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        user-select: none;
+        -webkit-user-select: none;
     }
  
     .mobile-more-menu.show {
