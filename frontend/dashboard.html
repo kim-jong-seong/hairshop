@@ -223,7 +223,10 @@
             <!-- 관리자 페이지 -->
             <div id="admin-page" class="page hidden">
                 <h2>관리자 메뉴</h2>
-                <div class="admin-menu-container">
+    
+                <!-- 데이터 관리 섹션 -->
+                <div class="admin-section">
+                    <h3>데이터 관리</h3>
                     <div class="admin-buttons">
                         <button id="downloadDbBtn" class="add-button">
                             데이터베이스 다운로드
@@ -232,6 +235,60 @@
                             CSV 다운로드
                         </button>
                     </div>
+                </div>
+
+                <!-- 백업 설정 섹션 -->
+                <div class="admin-section">
+                    <h3>백업 설정</h3>
+                    <form id="backupSettingsForm" class="backup-settings-form">
+                        <div class="form-group">
+                            <label class="switch-label">
+                                <input type="checkbox" id="autoBackup">
+                                자동 백업 사용
+                                <span class="switch"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>백업 주기</label>
+                            <select id="backupInterval" class="search-input">
+                                <option value="daily">매일</option>
+                                <option value="weekly">매주</option>
+                                <option value="monthly">매월</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>백업 시간</label>
+                            <input type="time" id="backupTime" class="search-input" value="03:00">
+                        </div>
+                        
+                        <div class="form-group week-day-select" id="weekDaySelect">
+                            <label>백업 요일</label>
+                            <select id="backupDay" class="search-input">
+                                <option value="sunday">일요일</option>
+                                <option value="monday">월요일</option>
+                                <option value="tuesday">화요일</option>
+                                <option value="wednesday">수요일</option>
+                                <option value="thursday">목요일</option>
+                                <option value="friday">금요일</option>
+                                <option value="saturday">토요일</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>백업 이메일</label>
+                            <input type="email" id="backupEmail" class="search-input" 
+                                placeholder="example@naver.com">
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="add-button">설정 저장</button>
+                            <button type="button" id="runBackupNow" class="add-button">
+                                지금 백업하기
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </main>

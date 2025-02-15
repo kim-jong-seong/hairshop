@@ -1644,6 +1644,124 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeMobileNav();
 });
 
+// 백업 설정 UI 요소
+const backupSettingsForm = document.getElementById('backupSettingsForm');
+const autoBackupSwitch = document.getElementById('autoBackup');
+const backupInterval = document.getElementById('backupInterval');
+const backupTime = document.getElementById('backupTime');
+const backupDay = document.getElementById('backupDay');
+const backupEmail = document.getElementById('backupEmail');
+const weekDaySelect = document.getElementById('weekDaySelect');
+const runBackupNow = document.getElementById('runBackupNow');
+
+// 백업 주기에 따른 요일 선택 표시/숨김
+backupInterval.addEventListener('change', () => {
+    weekDaySelect.style.display = 
+        backupInterval.value === 'weekly' ? 'block' : 'none';
+});
+
+// 백업 설정 관련 코드
+async function loadBackupSettings() {
+    try {
+        const response = await fetch('/api/backup/settings');
+        const settings = await response.json();
+        
+        // 설정값 UI에 적용
+        document.getElementById('autoBackup').checked = settings.is_auto_backup;
+        document.getElementById('backupInterval').value = settings.backup_interval;
+        document.getElementById('backupTime').value = settings.backup_time;
+        document.getElementById('backupDay').value = settings.backup_day;
+        document.getElementById('backupEmail').value = settings.backup_email || '';
+
+        // 백업 주기에 따른 요일 선택 UI 표시/숨김
+        document.getElementById('weekDaySelect').style.display = 
+            settings.backup_interval === 'weekly' ? 'block' : 'none';
+    } catch (error) {
+        console.error('백업 설정 로드 실패:', error);
+        alert('백업 설정을 불러오는데 실패했습니다.');
+    }
+}
+
+// 백업 설정 저장
+document.getElementById('backupSettingsForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const settings = {
+        is_auto_backup: document.getElementById('autoBackup').checked,
+        backup_interval: document.getElementById('backupInterval').value,
+        backup_time: document.getElementById('backupTime').value,
+        backup_day: document.getElementById('backupDay').value,
+        backup_email: document.getElementById('backupEmail').value
+    };
+
+    try {
+        const response = await fetch('/api/backup/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings)
+        });
+
+        if (response.ok) {
+            alert('백업 설정이 저장되었습니다.');
+        } else {
+            throw new Error('설정 저장 실패');
+        }
+    } catch (error) {
+        console.error('백업 설정 저장 실패:', error);
+        alert('백업 설정 저장에 실패했습니다.');
+    }
+});
+
+// 백업 주기 변경 시 요일 선택 UI 표시/숨김
+document.getElementById('backupInterval').addEventListener('change', (e) => {
+    document.getElementById('weekDaySelect').style.display = 
+        e.target.value === 'weekly' ? 'block' : 'none';
+});
+
+// 수동 백업 실행
+document.getElementById('runBackupNow').addEventListener('click', async () => {
+    const email = document.getElementById('backupEmail').value;
+    if (!email) {
+        alert('백업 이메일 주소를 먼저 설정해주세요.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/backup/run', {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            alert('백업 파일이 메일로 전송되었습니다. 메일을 확인해주세요.');
+        } else {
+            throw new Error('백업 실행 실패');
+        }
+    } catch (error) {
+        console.error('백업 실행 실패:', error);
+        alert('백업에 실패했습니다.');
+    }
+});
+
+// 관리자 페이지 로드 시 백업 설정 로드
+document.addEventListener('DOMContentLoaded', () => {
+    // 기존 이벤트 리스너들...
+
+    // 관리자 페이지 전환 시 백업 설정 로드
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const pageId = item.getAttribute('data-page');
+            if (pageId === 'admin') {
+                loadBackupSettings();
+            }
+        });
+    });
+});
+
+// 모바일 네비게이션에서 관리자 메뉴 클릭 시에도 백업 설정 로드
+document.querySelector('.admin-menu')?.addEventListener('click', () => {
+    loadBackupSettings();
+});
+
 // 초기 데이터 로드
 loadCustomers();
 loadServices();

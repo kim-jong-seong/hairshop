@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
@@ -6,6 +7,7 @@ const path = require('path');
 const { create } = require('domain');
 process.env.TZ = 'Asia/Seoul';
 const createCsvStringifier = require('csv-writer').createObjectCsvStringifier;
+const { updateBackupSchedule, runBackupNow } = require(path.join(__dirname, 'emailBackup.js'));
 
 const app = express();
 
@@ -21,7 +23,7 @@ async function initializeDB() {
         driver: sqlite3.Database
     });
 
-    // 테이블 생성
+    // 모든 테이블 생성을 여기서 진행
     await db.exec(`
         CREATE TABLE IF NOT EXISTS customers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,7 +52,39 @@ async function initializeDB() {
             FOREIGN KEY (customer_id) REFERENCES customers(id),
             FOREIGN KEY (service_id) REFERENCES services(id)
         );
+
+        CREATE TABLE IF NOT EXISTS backup_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            is_auto_backup BOOLEAN DEFAULT 0,
+            backup_interval TEXT DEFAULT 'weekly',
+            backup_time TEXT DEFAULT '03:00',
+            backup_day TEXT DEFAULT 'sunday',
+            backup_email TEXT,
+            created_at DATETIME DEFAULT (datetime('now', 'localtime')),
+            updated_at DATETIME DEFAULT (datetime('now', 'localtime'))
+        );
     `);
+}
+
+// 백업 설정 테이블만 따로 생성하는 함수
+async function createBackupSettingsTable() {
+    try {
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS backup_settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                is_auto_backup BOOLEAN DEFAULT 0,
+                backup_interval TEXT DEFAULT 'weekly',
+                backup_time TEXT DEFAULT '03:00',
+                backup_day TEXT DEFAULT 'sunday',
+                backup_email TEXT,
+                created_at DATETIME DEFAULT (datetime('now', 'localtime')),
+                updated_at DATETIME DEFAULT (datetime('now', 'localtime'))
+            );
+        `);
+        console.log('백업 설정 테이블 생성 완료');
+    } catch (error) {
+        console.error('백업 설정 테이블 생성 실패:', error);
+    }
 }
 
 // 로그인 API
@@ -378,6 +412,77 @@ app.get('/api/export/csv', async (req, res) => {
     }
 });
 
+// 시간 포맷팅 함수 수정
+function getKoreanTime() {
+    const now = new Date();
+    now.setHours(now.getHours() + 9); // UTC+9 (한국 시간)
+    return now.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+// 백업 설정 조회 API
+app.get('/api/backup/settings', async (req, res) => {
+    try {
+        let settings = await db.get('SELECT * FROM backup_settings ORDER BY id DESC LIMIT 1');
+        if (!settings) {
+            // 기본 설정 생성
+            await db.run(`
+                INSERT INTO backup_settings 
+                (is_auto_backup, backup_interval, backup_time, backup_day, backup_email) 
+                VALUES (0, 'weekly', '03:00', 'sunday', NULL)
+            `);
+            settings = await db.get('SELECT * FROM backup_settings ORDER BY id DESC LIMIT 1');
+        }
+        res.json(settings);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 백업 설정 업데이트 API
+app.put('/api/backup/settings', async (req, res) => {
+    const { is_auto_backup, backup_interval, backup_time, backup_day, backup_email } = req.body;
+    try {
+        await db.run(`
+            UPDATE backup_settings 
+            SET is_auto_backup = ?, 
+                backup_interval = ?, 
+                backup_time = ?, 
+                backup_day = ?, 
+                backup_email = ?,
+                updated_at = datetime('now', 'localtime')
+            WHERE id = (SELECT id FROM backup_settings ORDER BY id DESC LIMIT 1)
+        `, [is_auto_backup, backup_interval, backup_time, backup_day, backup_email]);
+        
+        // 백업 스케줄 재설정
+        updateBackupSchedule({
+            is_auto_backup,
+            backup_interval,
+            backup_time,
+            backup_day,
+            backup_email
+        });
+        
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 수동 백업 실행 API
+app.post('/api/backup/run', async (req, res) => {
+    try {
+        const settings = await db.get('SELECT * FROM backup_settings ORDER BY id DESC LIMIT 1');
+        if (!settings?.backup_email) {
+            return res.status(400).json({ error: '백업 이메일 설정이 필요합니다.' });
+        }
+        
+        await runBackupNow(settings.backup_email);
+        res.json({ success: true, message: '백업이 시작되었습니다.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 서버 시작
 async function startServer() {
     await initializeDB();
@@ -385,13 +490,6 @@ async function startServer() {
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`Server is running on http://localhost:${PORT}`);
     });
-}
-
-// 시간 포맷팅 함수 수정
-function getKoreanTime() {
-    const now = new Date();
-    now.setHours(now.getHours() + 9); // UTC+9 (한국 시간)
-    return now.toISOString().slice(0, 19).replace('T', ' ');
 }
 
 startServer().catch(console.error);
