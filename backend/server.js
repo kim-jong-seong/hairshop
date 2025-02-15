@@ -56,7 +56,7 @@ async function initializeDB() {
 // 로그인 API
 app.post('/api/login', (req, res) => {
     const { password } = req.body;
-    if (password === '1234' || password === 'admin') {
+    if (password === '7878' || password === 'admin') {
         res.json({ 
             success: true, 
             isAdmin: password === 'admin'  // 관리자 여부 전달
