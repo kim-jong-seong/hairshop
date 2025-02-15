@@ -797,6 +797,10 @@ input:checked + .switch:before {
         height: calc(100vh + 400px);
     }
 
+    .main-content #admin-page {
+        height: calc(100vh + 50px);
+    }
+
     .page {
         height: calc(100vh - 100px);
         min-height: unset;
