@@ -746,7 +746,7 @@ textarea {
 }
 
 .switch-label {
-    width: 140px;
+    width: 160px;
     display: flex;
     align-items: center;
     gap: 10px;

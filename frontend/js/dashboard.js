@@ -999,20 +999,20 @@ document.getElementById('genderSearch').addEventListener('change', function(e) {
     applyMainSearch();
 });
 
-document.getElementById('mainPhoneSearch').addEventListener('input', function(e) {
-    mainSearchCriteria.phone = e.target.value.toLowerCase();
-    applyMainSearch();
-});
+// document.getElementById('mainPhoneSearch').addEventListener('input', function(e) {
+//     mainSearchCriteria.phone = e.target.value.toLowerCase();
+//     applyMainSearch();
+// });
 
-document.getElementById('serviceSearch').addEventListener('input', function(e) {
-    mainSearchCriteria.service = e.target.value.toLowerCase();
-    applyMainSearch();
-});
+// document.getElementById('serviceSearch').addEventListener('input', function(e) {
+//     mainSearchCriteria.service = e.target.value.toLowerCase();
+//     applyMainSearch();
+// });
 
-document.getElementById('mainMemoSearch').addEventListener('input', function(e) {
-    mainSearchCriteria.memo = e.target.value.toLowerCase();
-    applyMainSearch();
-});
+// document.getElementById('mainMemoSearch').addEventListener('input', function(e) {
+//     mainSearchCriteria.memo = e.target.value.toLowerCase();
+//     applyMainSearch();
+// });
 
 // 메인화면 검색 적용 함수
 function applyMainSearch() {
@@ -1023,15 +1023,15 @@ function applyMainSearch() {
             item.customer_name?.toLowerCase().includes(mainSearchCriteria.name);
         const genderMatch = !mainSearchCriteria.gender || 
             item.gender === mainSearchCriteria.gender;
-        const phoneMatch = !mainSearchCriteria.phone || 
-            item.phone?.toLowerCase().includes(mainSearchCriteria.phone);
-        const serviceMatch = !mainSearchCriteria.service || 
-            item.service_name?.toLowerCase().includes(mainSearchCriteria.service);
-        const memoMatch = !mainSearchCriteria.memo || 
-            item.memo?.toLowerCase().includes(mainSearchCriteria.memo);
+        const phoneMatch = !mainSearchCriteria.name || 
+            item.phone?.toLowerCase().includes(mainSearchCriteria.name);
+        const serviceMatch = !mainSearchCriteria.name || 
+            item.service_name?.toLowerCase().includes(mainSearchCriteria.name);
+        const memoMatch = !mainSearchCriteria.name || 
+            item.memo?.toLowerCase().includes(mainSearchCriteria.name);
 
-        return dateMatch && nameMatch && genderMatch && phoneMatch && 
-               serviceMatch && memoMatch;
+        return dateMatch && genderMatch 
+                && ( nameMatch || phoneMatch || serviceMatch || memoMatch);
     });
 
     // 총 금액 계산
@@ -1058,27 +1058,27 @@ document.getElementById('nameSearch').addEventListener('input', function(e) {
     applySearch();
 });
 
-document.getElementById('phoneSearch').addEventListener('input', function(e) {
-    searchCriteria.phone = e.target.value.toLowerCase();
-    applySearch();
-});
+// document.getElementById('phoneSearch').addEventListener('input', function(e) {
+//     searchCriteria.phone = e.target.value.toLowerCase();
+//     applySearch();
+// });
 
-document.getElementById('memoSearch').addEventListener('input', function(e) {
-    searchCriteria.memo = e.target.value.toLowerCase();
-    applySearch();
-});
+// document.getElementById('memoSearch').addEventListener('input', function(e) {
+//     searchCriteria.memo = e.target.value.toLowerCase();
+//     applySearch();
+// });
 
 // 검색 적용 함수
 function applySearch() {
     const filteredCustomers = cachedData.customers.filter(customer => {
         const nameMatch = !searchCriteria.name || 
             (customer.name?.toLowerCase().includes(searchCriteria.name));
-        const phoneMatch = !searchCriteria.phone || 
-            (customer.phone?.toLowerCase().includes(searchCriteria.phone));
-        const memoMatch = !searchCriteria.memo || 
-            (customer.memo?.toLowerCase().includes(searchCriteria.memo));
+        const phoneMatch = !searchCriteria.name || 
+            (customer.phone?.toLowerCase().includes(searchCriteria.name));
+        const memoMatch = !searchCriteria.name || 
+            (customer.memo?.toLowerCase().includes(searchCriteria.name));
 
-        return nameMatch && phoneMatch && memoMatch;
+        return nameMatch || phoneMatch || memoMatch;
     });
 
     renderCustomerTable(sortData(
