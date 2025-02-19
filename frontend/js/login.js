@@ -29,3 +29,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         errorMessage.style.display = 'block';
     }
 });
+
+function getPgmId() {
+    return "login";
+}

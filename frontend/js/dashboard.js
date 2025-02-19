@@ -28,6 +28,10 @@ const ICONS = {
     </svg>`
 };
 
+function getPgmId() {
+    return "dashboard";
+}
+
 // 페이지 로드 시 관리자 체크
 window.addEventListener('DOMContentLoaded', () => {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
