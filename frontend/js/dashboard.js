@@ -1322,7 +1322,7 @@ function showServiceEditModal(serviceId, field, currentValue) {
         <form id="serviceEditForm">
             <div class="form-group">
                 <label>${fieldName}</label>
-                <input type="${inputType}" name="${field}" 
+                <input id="modalMainField" type="${inputType}" name="${field}" 
                        value="${currentValue}" required
                        ${field === 'price' ? 'min="0"' : ''}>
             </div>
@@ -1331,6 +1331,9 @@ function showServiceEditModal(serviceId, field, currentValue) {
             </div>
         </form>
     `);
+
+    document.getElementById('modalMainField').focus();
+    document.getElementById('modalMainField').select();
 
     document.getElementById('serviceEditForm').addEventListener('submit', async (e) => {
         e.preventDefault();
