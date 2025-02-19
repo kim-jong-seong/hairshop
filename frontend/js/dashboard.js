@@ -397,7 +397,7 @@ document.getElementById('addCustomerBtn').addEventListener('click', () => {
         <form id="customerForm">
             <div class="form-group">
                 <label>이름</label>
-                <input type="text" name="name" required>
+                <input id="modalName" type="text" name="name" required>
             </div>
             <div class="form-group">
                 <label>성별</label>
@@ -419,6 +419,8 @@ document.getElementById('addCustomerBtn').addEventListener('click', () => {
             </div>
         </form>
     `);
+
+    document.getElementById('modalName').focus();
 
     document.getElementById('customerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -608,7 +610,7 @@ async function showHistoryEditModal(history) {
             </div>
             <div class="form-group">
                 <label>금액</label>
-                <input type="number" name="amount" id="serviceAmount" required value="${history.amount}">
+                <input id="modalAmount" type="number" name="amount" id="serviceAmount" required value="${history.amount}">
             </div>
             <div class="form-group">
                 <label>메모</label>
@@ -626,6 +628,9 @@ async function showHistoryEditModal(history) {
             </div>
         </form>
     `);
+
+    document.getElementById('modalAmount').focus();
+    document.getElementById('modalAmount').select();
 
     document.getElementById('historyEditForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -668,7 +673,7 @@ function showCustomerEditModal(customer) {
             <input type="hidden" name="id" value="${customer.id}">
             <div class="form-group">
                 <label>이름</label>
-                <input type="text" name="name" required value="${customer.name}">
+                <input id="modalName" type="text" name="name" required value="${customer.name}">
             </div>
             <div class="form-group">
                 <label>성별</label>
@@ -693,6 +698,9 @@ function showCustomerEditModal(customer) {
             </div>
         </form>
     `);
+
+    document.getElementById('modalName').focus()
+    document.getElementById('modalName').select();
 
     document.getElementById('customerEditForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -1546,10 +1554,14 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 });
 
 document.getElementById('logoutBtn_Mobile').addEventListener('click', () => {
+    fn_logout();
+});
+
+function fn_logout() {
     if(!confirm("로그아웃 하시겠습니까?")) {return;}
     sessionStorage.removeItem('isLoggedIn');
     window.location.href = '/';
-});
+}
 
 // 초기 데이터 로드 전에 오늘 날짜 설정 함수 추가
 function setTodayDate() {
