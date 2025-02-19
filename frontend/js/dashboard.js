@@ -1567,6 +1567,11 @@ function fn_logout() {
     window.location.href = '/';
 }
 
+function fn_doLogout() {
+    sessionStorage.removeItem('isLoggedIn');
+    window.location.href = '/';
+}
+
 // 초기 데이터 로드 전에 오늘 날짜 설정 함수 추가
 function setTodayDate() {
     const today = new Date();
