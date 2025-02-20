@@ -49,6 +49,8 @@ async function initializeDB() {
             amount INTEGER,
             memo TEXT,
             created_at DATETIME,
+            is_direct_input BOOLEAN DEFAULT 0,
+            modified_service_name TEXT,
             FOREIGN KEY (customer_id) REFERENCES customers(id),
             FOREIGN KEY (service_id) REFERENCES services(id)
         );
@@ -64,27 +66,6 @@ async function initializeDB() {
             updated_at DATETIME DEFAULT (datetime('now', 'localtime'))
         );
     `);
-}
-
-// 백업 설정 테이블만 따로 생성하는 함수
-async function createBackupSettingsTable() {
-    try {
-        await db.exec(`
-            CREATE TABLE IF NOT EXISTS backup_settings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                is_auto_backup BOOLEAN DEFAULT 0,
-                backup_interval TEXT DEFAULT 'weekly',
-                backup_time TEXT DEFAULT '03:00',
-                backup_day TEXT DEFAULT 'sunday',
-                backup_email TEXT,
-                created_at DATETIME DEFAULT (datetime('now', 'localtime')),
-                updated_at DATETIME DEFAULT (datetime('now', 'localtime'))
-            );
-        `);
-        console.log('백업 설정 테이블 생성 완료');
-    } catch (error) {
-        console.error('백업 설정 테이블 생성 실패:', error);
-    }
 }
 
 // 로그인 API
@@ -135,7 +116,7 @@ app.post('/api/customers', async (req, res) => {
 app.get('/api/services', async (req, res) => {
     try {
         const services = await db.all(
-            'SELECT * FROM services ORDER BY is_favorite DESC, name'
+            'SELECT * FROM services WHERE id != 999 ORDER BY is_favorite DESC, name'
         );
         res.json(services);
     } catch (err) {
@@ -182,7 +163,10 @@ app.get('/api/history', async (req, res) => {
                 c.name as customer_name,
                 c.gender,
                 c.phone,
-                s.name as service_name
+                CASE 
+                    WHEN h.is_direct_input = 1 THEN h.modified_service_name 
+                    ELSE s.name 
+                END as service_name
             FROM history h
             JOIN customers c ON h.customer_id = c.id
             JOIN services s ON h.service_id = s.id
@@ -222,13 +206,18 @@ app.get('/api/history', async (req, res) => {
 });
 
 app.post('/api/history', async (req, res) => {
-    const { customer_id, service_id, amount, memo, created_at } = req.body;
-    const koreanTime = getKoreanTime();
+    let { customer_id, service_id, amount, memo, created_at, modified_service_name } = req.body;
+    const is_direct_input = service_id === 999 || service_id == "" || service_id == null;
+    service_id = is_direct_input > 0 ? 999 : service_id;
 
     try {
         const result = await db.run(
-            'INSERT INTO history (customer_id, service_id, amount, memo, created_at) VALUES (?, ?, ?, ?, ?)',
-            [customer_id, service_id, amount, memo, created_at]
+            `INSERT INTO history (
+                customer_id, service_id, amount, memo, created_at, 
+                is_direct_input, modified_service_name
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [customer_id, service_id, amount, memo, created_at, 
+             is_direct_input ? 1 : 0, modified_service_name]
         );
         res.json({ id: result.lastID });
     } catch (err) {
@@ -239,11 +228,18 @@ app.post('/api/history', async (req, res) => {
 // 시술 내역 수정 API
 app.put('/api/history/:id', async (req, res) => {
     const { id } = req.params;
-    const { service_id, amount, memo, created_at } = req.body;
+    let { service_id, amount, memo, created_at, modified_service_name } = req.body;
+    const is_direct_input = service_id === 999 || service_id == "" || service_id == null;
+    service_id = is_direct_input > 0 ? 999 : service_id;
+
     try {
         await db.run(
-            'UPDATE history SET service_id = ?, amount = ?, memo = ?, created_at = ? WHERE id = ?',
-            [service_id, amount, memo, created_at, id]
+            `UPDATE history SET 
+                service_id = IFNULL(?, 999), amount = ?, memo = ?, created_at = ?,
+                is_direct_input = ?, modified_service_name = ?
+            WHERE id = ?`,
+            [service_id, amount, memo, created_at, 
+             is_direct_input ? 1 : 0, modified_service_name, id]
         );
         res.json({ success: true });
     } catch (err) {
@@ -385,6 +381,8 @@ app.get('/api/export/csv', async (req, res) => {
                 {id: 'created_at', title: '날짜'},
                 {id: 'customer_name', title: '고객명'},
                 {id: 'service_name', title: '시술명'},
+                {id: 'is_direct_input', title: '직접입력여부'},
+                {id: 'modified_service_name', title: '직접입력시술명'},
                 {id: 'amount', title: '금액'},
                 {id: 'memo', title: '메모'}
             ]
@@ -491,5 +489,29 @@ async function startServer() {
         console.log(`Server is running on http://localhost:${PORT}`);
     });
 }
+
+app.post('/api/admin/execute-sql', async (req, res) => {
+    const { query } = req.body;
+    try {
+        const isSelect = query.trim().toLowerCase().startsWith('select');
+        
+        if (isSelect) {
+            // SELECT 쿼리인 경우 바로 실행
+            const results = await db.all(query);
+            res.json({ 
+                success: true, 
+                isSelect: true, 
+                results
+            });
+        } else {
+            // INSERT, UPDATE, DELETE 등의 쿼리
+            await db.run(query);
+            res.json({ success: true, isSelect: false });
+        }
+    } catch (err) {
+        console.error('SQL 실행 에러:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 startServer().catch(console.error);

@@ -467,7 +467,7 @@ function getCurrentDateTime() {
 document.getElementById('addHistoryBtn').addEventListener('click', async () => {
     // 기존 선택된 고객 확인 로직을 모바일 대응으로 수정
     let selectedCustomer;
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 1370) {
         // 모바일에서는 카드에서 선택된 고객 찾기
         const selectedCard = document.querySelector('.mobile-customer-list .customer-list-card.selected');
         if (!selectedCard) {
@@ -507,16 +507,28 @@ document.getElementById('addHistoryBtn').addEventListener('click', async () => {
                 <input type="text" value="${selectedCustomer.name}" readonly style="background-color: #eee;">
                 <input type="hidden" name="customer_id" value="${selectedCustomer.id}">
             </div>
-            <div class="form-group">
-                <label>시술종류</label>
-                <select name="service_id" required onchange="updateServicePrice(this.value)">
-                    <option value="">시술 선택</option>
-                    ${sortedServices.map(s => `
-                        <option value="${s.id}" data-price="${s.price}">
-                            ${s.is_favorite ? '★ ' : ''}${s.name} -  ${s.price.toLocaleString()}원
-                        </option>
-                    `).join('')}
-                </select>
+             <div class="form-group">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <label style="width: 60px;">시술종류</label>
+                    <label class="switch-label" style="width: auto; border: 0; margin-bottom: 5px; padding-bottom: 0;">
+                        <input type="checkbox" id="directInputSwitch" style="display: none;" onchange="toggleDirectInput(this)">
+                        직접입력
+                        <span class="switch"></span>
+                    </label>
+                </div>
+                <div id="serviceSelectArea">
+                    <select name="service_id" required onchange="updateServicePrice(this.value)">
+                        <option value="">시술 선택</option>
+                        ${sortedServices.map(s => `
+                            <option value="${s.id}" data-price="${s.price}">
+                                ${s.is_favorite ? '★ ' : ''}${s.name} - ${s.price.toLocaleString()}원
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+                <div id="serviceDirectInput" style="display: none;">
+                    <textarea name="modified_service_name" class="search-input" style="height: 38px;" placeholder="직접입력"></textarea>
+                </div>
             </div>
             <div class="form-group">
                 <label>금액</label>
@@ -602,19 +614,31 @@ async function showHistoryEditModal(history) {
                 <input type="hidden" name="customer_id" value="${history.customer_id}">
             </div>
             <div class="form-group">
-                <label>시술종류</label>
-                <select name="service_id" required onchange="updateServicePrice(this.value)">
-                    <option value="">시술 선택</option>
-                    ${sortedServices.map(s => `
-                        <option value="${s.id}" data-price="${s.price}" ${s.id === history.service_id ? 'selected' : ''}>
-                            ${s.is_favorite ? '★ ' : ''}${s.name} - ${s.price.toLocaleString()}원
-                        </option>
-                    `).join('')}
-                </select>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <label style="width: 60px;">시술종류</label>
+                    <label class="switch-label" style="width: auto; border: 0; margin-bottom: 5px; padding-bottom: 0;">
+                        <input type="checkbox" id="directInputSwitch" style="display: none;" ${history.is_direct_input ? 'checked' : ''} onchange="toggleDirectInput(this)">
+                        직접입력
+                        <span class="switch"></span>
+                    </label>
+                </div>
+                <div id="serviceSelectArea" style="${history.is_direct_input ? 'display: none;' : ''}">
+                    <select name="service_id" required onchange="updateServicePrice(this.value)">
+                        <option value="">시술 선택</option>
+                        ${sortedServices.map(s => `
+                            <option value="${s.id}" data-price="${s.price}" ${s.id === history.service_id ? 'selected' : ''}>
+                                ${s.is_favorite ? '★ ' : ''}${s.name} - ${s.price.toLocaleString()}원
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+                <div id="serviceDirectInput" style="${history.is_direct_input ? '' : 'display: none;'}">
+                    <textarea name="modified_service_name" class="search-input" style="height: 38px;" placeholder="직접입력">${history.is_direct_input ? history.service_name : ''}</textarea>
+                </div>
             </div>
             <div class="form-group">
                 <label>금액</label>
-                <input id="modalAmount" type="number" name="amount" id="serviceAmount" required value="${history.amount}">
+                <input id="serviceAmount" type="number" name="amount" required value="${history.amount}">
             </div>
             <div class="form-group">
                 <label>메모</label>
@@ -633,8 +657,20 @@ async function showHistoryEditModal(history) {
         </form>
     `);
 
-    document.getElementById('modalAmount').focus();
-    document.getElementById('modalAmount').select();
+    // 모달이 띄워진 후 초기 상태 설정
+    const serviceSelect = document.querySelector('#serviceSelectArea select');
+    const directTextarea = document.querySelector('#serviceDirectInput textarea');
+
+    if (history.is_direct_input) {
+        serviceSelect.removeAttribute('required');
+        directTextarea.setAttribute('required', 'required');
+    } else {
+        serviceSelect.setAttribute('required', 'required');
+        directTextarea.removeAttribute('required');
+    }
+
+    document.getElementById('serviceAmount').focus();
+    document.getElementById('serviceAmount').select();
 
     document.getElementById('historyEditForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -669,6 +705,33 @@ async function showHistoryEditModal(history) {
         }
     });
 }
+
+window.toggleDirectInput = function(checkbox) {
+    const selectArea = document.getElementById('serviceSelectArea');
+    const directInput = document.getElementById('serviceDirectInput');
+    const serviceSelect = selectArea.querySelector('select');
+    const directTextarea = directInput.querySelector('textarea');
+
+    if (checkbox.checked) {
+        selectArea.style.display = 'none';
+        directInput.style.display = 'block';
+        serviceSelect.removeAttribute('required');  // required 속성 제거
+        // 선택된 시술명을 textarea에 복사
+        const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+        if (selectedOption.value) {
+            directTextarea.value = selectedOption.text.replace(/★ /, '').split(' - ')[0];
+        }
+        serviceSelect.value = '999'; // 직접입력 service_id
+        directTextarea.setAttribute('required', 'required');  // textarea에 required 추가
+    } else {
+        selectArea.style.display = 'block';
+        directInput.style.display = 'none';
+        directTextarea.value = '';
+        serviceSelect.value = ''; // select 요소 초기화
+        serviceSelect.setAttribute('required', 'required');  // select에 required 추가
+        directTextarea.removeAttribute('required');  // textarea의 required 제거
+    }
+};
 
 // 고객 정보 수정 모달
 function showCustomerEditModal(customer) {
@@ -793,6 +856,7 @@ async function deleteCustomer(customerId) {
 
 // 시술 선택 시 금액 자동 설정 함수
 window.updateServicePrice = function(serviceId) {
+    console.log(serviceId);
     const service = cachedData.services.find(s => s.id === parseInt(serviceId));
     if (service) {
         document.getElementById('serviceAmount').value = service.price;
@@ -897,7 +961,7 @@ function filterCustomerData() {
 
 // 렌더링 함수들
 function renderHistoryTable(data) {
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 1370) {
         renderMobileHistory(data);
     } else {
         renderDesktopHistory(data);
@@ -1101,7 +1165,7 @@ function applySearch() {
 }
 
 function renderCustomerTable(data) {
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 1370) {
         renderMobileCustomerList(data);
     } else {
         renderDesktopCustomerList(data);
@@ -1210,7 +1274,7 @@ function renderDesktopCustomerList(data) {
 }
 
 function renderCustomerHistoryTable(data) {
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 1370) {
         renderMobileCustomerHistory(data);
     } else {
         renderDesktopCustomerHistory(data);
@@ -1657,7 +1721,7 @@ adminMenu.addEventListener('click', () => {
 
 // 화면 크기 변경 시 더보기 메뉴 닫기
 window.addEventListener('resize', () => {
-    if (window.innerWidth > 768 && isMoreMenuOpen) {
+    if (window.innerWidth > 1370 && isMoreMenuOpen) {
         isMoreMenuOpen = false;
         mobileMoreMenu.classList.remove('show');
     }
@@ -1785,6 +1849,116 @@ document.addEventListener('DOMContentLoaded', () => {
 document.querySelector('.admin-menu')?.addEventListener('click', () => {
     loadBackupSettings();
 });
+
+
+document.getElementById('runSqlBtn').addEventListener('click', async () => {
+    currentQuery = document.getElementById('sqlQuery').value;
+    currentPage = 1;
+    executeQuery();
+});
+
+async function executeQuery() {
+    const query = document.getElementById('sqlQuery').value;
+    if (!query.trim()) {
+        alert('쿼리를 입력해주세요.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/admin/execute-sql', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query })
+        });
+
+        const data = await response.json();
+        console.log('받은 데이터:', data); // 데이터 확인용 로그
+
+        if (data.success) {
+            if (data.isSelect && data.results) {
+                console.log('조회 결과:', data.results); // 결과 확인용 로그
+                const resultDiv = document.getElementById('queryResult');
+                const headerDiv = document.getElementById('queryResultHeader');
+                const bodyDiv = document.getElementById('queryResultBody');
+                const totalCount = document.getElementById('adminTotalCount');
+
+                console.log(totalCount);
+                totalCount.innerHTML = data.results.length;
+
+                // 결과가 있는 경우
+                if (data.results.length > 0) {
+                    // 컬럼 헤더 생성
+                    const columns = Object.keys(data.results[0]);
+                    headerDiv.innerHTML = `
+                        <tr>
+                            ${columns.map(col => `<th>${col}</th>`).join('')}
+                        </tr>
+                    `;
+
+                    // 결과 데이터 표시
+                    bodyDiv.innerHTML = data.results.map(row => `
+                        <tr>
+                            ${columns.map(col => `<td>${row[col] ?? '-'}</td>`).join('')}
+                        </tr>
+                    `).join('');
+
+                    resultDiv.style.display = 'block';
+                    // alert('쿼리가 성공적으로 실행되었습니다.');
+                } else {
+                    // alert('조회된 결과가 없습니다.');
+                    resultDiv.style.display = 'none';
+                }
+            } else {
+                document.getElementById('queryResult').style.display = 'none';
+                // alert('쿼리가 성공적으로 실행되었습니다.');
+            }
+        }
+    } catch (error) {
+        console.error('에러 발생:', error); // 에러 확인용 로그
+        alert('쿼리 실행 중 오류가 발생했습니다: ' + error.message);
+    }
+}
+
+function displayQueryResults(results) {
+    if (!results || results.length === 0) {
+        alert('조회된 결과가 없습니다.');
+        return;
+    }
+
+    const resultDiv = document.getElementById('queryResult');
+    const headerDiv = document.getElementById('queryResultHeader');
+    const bodyDiv = document.getElementById('queryResultBody');
+
+    // 컬럼 헤더 생성
+    const columns = Object.keys(results[0]);
+    headerDiv.innerHTML = `
+        <tr>
+            ${columns.map(col => `<th>${col}</th>`).join('')}
+        </tr>
+    `;
+
+    // 결과 데이터 표시
+    bodyDiv.innerHTML = results.map(row => `
+        <tr>
+            ${columns.map(col => `<td>${row[col] ?? '-'}</td>`).join('')}
+        </tr>
+    `).join('');
+
+    resultDiv.style.display = 'block';
+}
+
+function updatePagination(data) {
+    const { total, page, pageSize, totalPages: pages } = data;
+    
+    document.getElementById('totalCount').textContent = total;
+    document.getElementById('currentPage').textContent = page;
+    document.getElementById('totalPages').textContent = pages;
+    
+    document.getElementById('prevPage').disabled = page <= 1;
+    document.getElementById('nextPage').disabled = page >= pages;
+    
+    totalPages = pages;
+}
 
 // 초기 데이터 로드
 loadCustomers();

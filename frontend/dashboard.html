@@ -290,6 +290,25 @@
                         </div>
                     </form>
                 </div>
+                <div class="admin-section" style="overflow-y: auto;">
+                    <h3>SQL 실행</h3>
+                    <div class="sql-editor">
+                        <textarea id="sqlQuery" class="search-input" style="height: 100px; font-family: monospace;" 
+                                  placeholder="SQL 쿼리를 입력하세요"></textarea>
+                        <div class="form-actions">
+                            <button id="runSqlBtn" class="add-button">쿼리 실행</button>
+                        </div>
+                    </div>
+                    <div id="queryResult" class="table-container" style="margin-top: 20px; display: none;">
+                        <div class="pagination-info" style="margin-bottom: 10px">
+                            <span>총 <span id="adminTotalCount">0</span>건</span>
+                        </div>
+                        <table>
+                            <thead id="queryResultHeader"></thead>
+                            <tbody id="queryResultBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
