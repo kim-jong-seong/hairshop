@@ -25,7 +25,7 @@ async function sendBackupEmail(toEmail) {
         const mailOptions = {
             from: process.env.SMTP_USER,
             to: toEmail,
-            subject: `헤어샵 DB 백업 - ${new Date().toISOString().split('T')[0]}`,
+            subject: `[백업] ${new Date().toISOString().split('T')[0]} 이미란헤어샵 DB`,
             text: '자동 백업 데이터베이스 파일이 첨부되어 있습니다.',
             attachments: [{
                 filename: `hairshop_database_backup_${new Date().toISOString().split('T')[0]}.db`,
