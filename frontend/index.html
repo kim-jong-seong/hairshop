@@ -8,7 +8,9 @@
 </head>
 <body>
     <div class="login-container">
-        <img src="logo.png" alt="이미란 헤어샵" class="logo">
+        <img src="logo.png" alt="이미란 헤어샵" class="logo" 
+             onload="document.body.classList.add('loaded')"
+             onerror="document.body.classList.add('loaded')">
         <div class="login-box">
             <form id="loginForm">
                 <div class="form-group">
