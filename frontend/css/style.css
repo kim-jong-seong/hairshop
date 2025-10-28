@@ -11,6 +11,9 @@ body {
     min-height: 100vh;
 }
 
+body { opacity: 0; transition: opacity 0.3s; }
+body.loaded { opacity: 1; }
+
 /* 로그인 페이지 스타일 */
 .login-container {
     display: flex;
