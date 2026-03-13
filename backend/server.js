@@ -39,6 +39,7 @@ async function initializeDB() {
             name TEXT NOT NULL,
             price INTEGER DEFAULT 0,
             is_favorite BOOLEAN DEFAULT 0,
+            is_deleted TEXT DEFAULT 'N',
             created_at DATETIME DEFAULT (datetime('now', 'localtime'))
         );
 
@@ -66,6 +67,7 @@ async function initializeDB() {
             updated_at DATETIME DEFAULT (datetime('now', 'localtime'))
         );
     `);
+
 }
 
 // 로그인 API
@@ -116,7 +118,7 @@ app.post('/api/customers', async (req, res) => {
 app.get('/api/services', async (req, res) => {
     try {
         const services = await db.all(
-            'SELECT * FROM services WHERE id != 999 ORDER BY is_favorite DESC, name'
+            "SELECT * FROM services WHERE id != 999 AND is_deleted = 'N' ORDER BY is_favorite DESC, name"
         );
         res.json(services);
     } catch (err) {
@@ -296,6 +298,20 @@ app.put('/api/services/:id', async (req, res) => {
         await db.run(
             'UPDATE services SET name = ?, price = ? WHERE id = ?',
             [name, price, id]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 시술 항목 삭제 API (논리 삭제)
+app.delete('/api/services/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await db.run(
+            "UPDATE services SET is_deleted = 'Y' WHERE id = ?",
+            [id]
         );
         res.json({ success: true });
     } catch (err) {
