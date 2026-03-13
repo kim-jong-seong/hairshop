@@ -1360,6 +1360,9 @@ function renderServicesTable(data) {
             <td>
                 <span class="editable" data-field="price">${service.price.toLocaleString()}</span>
             </td>
+            <td>
+                <button class="service-delete-btn" onclick="deleteService(${service.id})">삭제</button>
+            </td>
         </tr>
     `).join('');
 
@@ -1485,6 +1488,28 @@ window.toggleFavorite = async function(serviceId, isFavorite) {
     } catch (error) {
         console.error('Error:', error);
         alert('즐겨찾기 설정에 실패했습니다.');
+    }
+};
+
+// 시술 항목 삭제
+window.deleteService = async function(serviceId) {
+    if (!confirm('이 시술 항목을 삭제하시겠습니까?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/services/${serviceId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            cachedData.services = cachedData.services.filter(s => s.id !== serviceId);
+            renderServicesTable(cachedData.services);
+            alert('삭제되었습니다.');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('시술 항목 삭제에 실패했습니다.');
     }
 };
 
