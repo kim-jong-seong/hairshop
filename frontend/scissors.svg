@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- 위 손잡이 링 (evenodd로 구멍 표현) -->
+  <path fill="#1a1a1a" fill-rule="evenodd"
+    d="M 20,20 m -14,0 a 14,14 0 1,0 28,0 a 14,14 0 1,0 -28,0
+       M 20,20 m -7,0 a 7,7 0 1,0 14,0 a 7,7 0 1,0 -14,0"/>
+
+  <!-- 아래 손잡이 링 -->
+  <path fill="#1a1a1a" fill-rule="evenodd"
+    d="M 20,80 m -14,0 a 14,14 0 1,0 28,0 a 14,14 0 1,0 -28,0
+       M 20,80 m -7,0 a 7,7 0 1,0 14,0 a 7,7 0 1,0 -14,0"/>
+
+  <!-- 위 날: 위 링에서 오른쪽 아래 방향으로 -->
+  <polygon points="28,33 32,27 91,71 89,73" fill="#1a1a1a"/>
+
+  <!-- 아래 날: 아래 링에서 오른쪽 위 방향으로 (X자 교차) -->
+  <polygon points="32,73 28,67 89,27 91,29" fill="#1a1a1a"/>
+
+  <!-- 피벗 나사 (교차 지점) -->
+  <circle cx="59" cy="50" r="5" fill="white" stroke="#1a1a1a" stroke-width="2.5"/>
+</svg>
