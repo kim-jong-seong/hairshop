@@ -4,8 +4,11 @@ const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const { open } = require('sqlite');
 const path = require('path');
+const crypto = require('crypto');
 const { create } = require('domain');
 process.env.TZ = 'Asia/Seoul';
+
+const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
 const createCsvStringifier = require('csv-writer').createObjectCsvStringifier;
 const { updateBackupSchedule, runBackupNow } = require(path.join(__dirname, 'emailBackup.js'));
 
@@ -31,7 +34,8 @@ async function initializeDB() {
             gender TEXT,
             phone TEXT,
             memo TEXT,
-            created_at DATETIME DEFAULT (datetime('now', 'localtime'))
+            created_at DATETIME DEFAULT (datetime('now', 'localtime')),
+            updated_at DATETIME
         );
 
         CREATE TABLE IF NOT EXISTS services (
@@ -40,7 +44,8 @@ async function initializeDB() {
             price INTEGER DEFAULT 0,
             is_favorite BOOLEAN DEFAULT 0,
             is_deleted TEXT DEFAULT 'N',
-            created_at DATETIME DEFAULT (datetime('now', 'localtime'))
+            created_at DATETIME DEFAULT (datetime('now', 'localtime')),
+            updated_at DATETIME
         );
 
         CREATE TABLE IF NOT EXISTS history (
@@ -52,34 +57,55 @@ async function initializeDB() {
             created_at DATETIME,
             is_direct_input BOOLEAN DEFAULT 0,
             modified_service_name TEXT,
+            updated_at DATETIME,
             FOREIGN KEY (customer_id) REFERENCES customers(id),
             FOREIGN KEY (service_id) REFERENCES services(id)
         );
 
-        CREATE TABLE IF NOT EXISTS backup_settings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            is_auto_backup BOOLEAN DEFAULT 0,
-            backup_interval TEXT DEFAULT 'weekly',
-            backup_time TEXT DEFAULT '03:00',
-            backup_day TEXT DEFAULT 'sunday',
-            backup_email TEXT,
-            created_at DATETIME DEFAULT (datetime('now', 'localtime')),
-            updated_at DATETIME DEFAULT (datetime('now', 'localtime'))
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
         );
     `);
 
+    // 기본 settings 값 초기화 (이미 존재하면 건너뜀)
+    const initSettings = [
+        ['user_password_hash', sha256('7878')],
+        ['admin_password_hash', sha256('admin')],
+        ['is_auto_backup', '0'],
+        ['backup_interval', 'weekly'],
+        ['backup_time', '03:00'],
+        ['backup_day', 'sunday'],
+        ['backup_email', ''],
+    ];
+    for (const [key, value] of initSettings) {
+        await db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', [key, value]);
+    }
+
+    // 기존 DB에 updated_at 컬럼 추가 (이미 있으면 무시)
+    try { await db.run('ALTER TABLE customers ADD COLUMN updated_at DATETIME'); } catch {}
+    try { await db.run('ALTER TABLE services ADD COLUMN updated_at DATETIME'); } catch {}
+    try { await db.run('ALTER TABLE history ADD COLUMN updated_at DATETIME'); } catch {}
 }
 
 // 로그인 API
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
     const { password } = req.body;
-    if (password === '7878' || password === 'admin') {
-        res.json({ 
-            success: true, 
-            isAdmin: password === 'admin'  // 관리자 여부 전달
-        });
-    } else {
+    const hash = sha256(password || '');
+    try {
+        const [userRow, adminRow] = await Promise.all([
+            db.get("SELECT value FROM settings WHERE key = 'user_password_hash'"),
+            db.get("SELECT value FROM settings WHERE key = 'admin_password_hash'"),
+        ]);
+        if (hash === adminRow?.value) {
+            return res.json({ success: true, isAdmin: true });
+        }
+        if (hash === userRow?.value) {
+            return res.json({ success: true, isAdmin: false });
+        }
         res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
     }
 });
 
@@ -92,7 +118,7 @@ app.get('/api/database/download', (req, res) => {
 // 고객 관련 API
 app.get('/api/customers', async (req, res) => {
     try {
-        const customers = await db.all('SELECT * FROM customers ORDER BY name');
+        const customers = await db.all("SELECT * FROM customers WHERE delete_yn != 'Y' ORDER BY name");
         res.json(customers);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -146,7 +172,7 @@ app.put('/api/services/:id/favorite', async (req, res) => {
     const { is_favorite } = req.body;
     try {
         await db.run(
-            'UPDATE services SET is_favorite = ? WHERE id = ?',
+            "UPDATE services SET is_favorite = ?, updated_at = datetime('now', 'localtime') WHERE id = ?",
             [is_favorite ? 1 : 0, id]
         );
         res.json({ success: true });
@@ -157,47 +183,47 @@ app.put('/api/services/:id/favorite', async (req, res) => {
 
 // 시술 히스토리 API
 app.get('/api/history', async (req, res) => {
-    const { customer_id, year, month, day } = req.query;
+    const { customer_id, year, month, day, startDate, endDate, term, gender } = req.query;
     try {
         let query = `
-            SELECT 
+            SELECT
                 h.*,
                 c.name as customer_name,
                 c.gender,
                 c.phone,
-                CASE 
-                    WHEN h.is_direct_input = 1 THEN h.modified_service_name 
-                    ELSE s.name 
+                CASE
+                    WHEN h.is_direct_input = 1 THEN h.modified_service_name
+                    ELSE s.name
                 END as service_name
             FROM history h
             JOIN customers c ON h.customer_id = c.id
             JOIN services s ON h.service_id = s.id
-            WHERE 1=1
+            WHERE h.delete_yn != 'Y'
         `;
-        
+
         const params = [];
 
-        // customer_id가 있는 경우 (고객별 히스토리 조회 시)
         if (customer_id) {
             query += ' AND h.customer_id = ?';
             params.push(customer_id);
-        } 
-        // 메인화면 조회 시 (날짜 필터)
-        else {
-            if (year) {
-                query += " AND strftime('%Y', h.created_at) = ?";
-                params.push(year);
-            }
-            if (month) {
-                query += " AND strftime('%m', h.created_at) = ?";
-                params.push(month);
-            }
-            if (day) {
-                query += " AND strftime('%d', h.created_at) = ?";
-                params.push(day);
-            }
+        } else {
+            if (startDate) { query += " AND date(h.created_at) >= ?"; params.push(startDate); }
+            if (endDate)   { query += " AND date(h.created_at) <= ?"; params.push(endDate); }
+            if (year)  { query += " AND strftime('%Y', h.created_at) = ?"; params.push(year); }
+            if (month) { query += " AND strftime('%m', h.created_at) = ?"; params.push(month); }
+            if (day)   { query += " AND strftime('%d', h.created_at) = ?"; params.push(day); }
         }
-        
+
+        if (term) {
+            const t = `%${term}%`;
+            query += ' AND (c.name LIKE ? OR s.name LIKE ? OR h.modified_service_name LIKE ? OR h.memo LIKE ? OR c.phone LIKE ?)';
+            params.push(t, t, t, t, t);
+        }
+        if (gender) {
+            query += ' AND c.gender = ?';
+            params.push(gender);
+        }
+
         query += ' ORDER BY h.created_at DESC';
         
         const history = await db.all(query, params);
@@ -215,10 +241,10 @@ app.post('/api/history', async (req, res) => {
     try {
         const result = await db.run(
             `INSERT INTO history (
-                customer_id, service_id, amount, memo, created_at, 
-                is_direct_input, modified_service_name
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [customer_id, service_id, amount, memo, created_at, 
+                customer_id, service_id, amount, memo, created_at,
+                is_direct_input, modified_service_name, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))`,
+            [customer_id, service_id, amount, memo, created_at,
              is_direct_input ? 1 : 0, modified_service_name]
         );
         res.json({ id: result.lastID });
@@ -236,11 +262,12 @@ app.put('/api/history/:id', async (req, res) => {
 
     try {
         await db.run(
-            `UPDATE history SET 
+            `UPDATE history SET
                 service_id = IFNULL(?, 999), amount = ?, memo = ?, created_at = ?,
-                is_direct_input = ?, modified_service_name = ?
+                is_direct_input = ?, modified_service_name = ?,
+                updated_at = datetime('now', 'localtime')
             WHERE id = ?`,
-            [service_id, amount, memo, created_at, 
+            [service_id, amount, memo, created_at,
              is_direct_input ? 1 : 0, modified_service_name, id]
         );
         res.json({ success: true });
@@ -255,7 +282,7 @@ app.put('/api/customers/:id', async (req, res) => {
     const { name, gender, phone, memo } = req.body;
     try {
         await db.run(
-            'UPDATE customers SET name = ?, gender = ?, phone = ?, memo = ? WHERE id = ?',
+            "UPDATE customers SET name = ?, gender = ?, phone = ?, memo = ?, updated_at = datetime('now', 'localtime') WHERE id = ?",
             [name, gender, phone, memo, id]
         );
         res.json({ success: true });
@@ -264,28 +291,24 @@ app.put('/api/customers/:id', async (req, res) => {
     }
 });
 
-// 시술 내역 삭제 API
+// 시술 내역 삭제 API (논리 삭제)
 app.delete('/api/history/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        await db.run('DELETE FROM history WHERE id = ?', [id]);
+        await db.run("UPDATE history SET delete_yn = 'Y', updated_at = datetime('now', 'localtime') WHERE id = ?", [id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// 고객 정보 삭제 API (관련 시술 내역도 함께 삭제)
+// 고객 정보 삭제 API (논리 삭제, 시술 이력 유지)
 app.delete('/api/customers/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        await db.run('BEGIN TRANSACTION');
-        await db.run('DELETE FROM history WHERE customer_id = ?', [id]);
-        await db.run('DELETE FROM customers WHERE id = ?', [id]);
-        await db.run('COMMIT');
+        await db.run("UPDATE customers SET delete_yn = 'Y', updated_at = datetime('now', 'localtime') WHERE id = ?", [id]);
         res.json({ success: true });
     } catch (err) {
-        await db.run('ROLLBACK');
         res.status(500).json({ error: err.message });
     }
 });
@@ -296,7 +319,7 @@ app.put('/api/services/:id', async (req, res) => {
     const { name, price } = req.body;
     try {
         await db.run(
-            'UPDATE services SET name = ?, price = ? WHERE id = ?',
+            "UPDATE services SET name = ?, price = ?, updated_at = datetime('now', 'localtime') WHERE id = ?",
             [name, price, id]
         );
         res.json({ success: true });
@@ -310,7 +333,7 @@ app.delete('/api/services/:id', async (req, res) => {
     const { id } = req.params;
     try {
         await db.run(
-            "UPDATE services SET is_deleted = 'Y' WHERE id = ?",
+            "UPDATE services SET is_deleted = 'Y', updated_at = datetime('now', 'localtime') WHERE id = ?",
             [id]
         );
         res.json({ success: true });
@@ -325,10 +348,10 @@ app.get('/api/sales', async (req, res) => {
         let groupFormat;
         switch(viewType) {
             case 'year':
-                groupFormat = '%Y년';
+                groupFormat = '%Y';
                 break;
             case 'month':
-                groupFormat = '%Y년 %m월';
+                groupFormat = '%Y-%m';
                 break;
             default:
                 groupFormat = '%Y-%m-%d'; // 일별은 기본 날짜 형식으로 반환
@@ -340,7 +363,8 @@ app.get('/api/sales', async (req, res) => {
                 COUNT(*) as count,
                 SUM(amount) as total
             FROM history
-            WHERE date(created_at) BETWEEN date(?) AND date(?)
+            WHERE delete_yn != 'Y'
+            AND date(created_at) BETWEEN date(?) AND date(?)
             GROUP BY strftime('${groupFormat}', created_at)
             ORDER BY created_at
         `;
@@ -436,16 +460,10 @@ function getKoreanTime() {
 // 백업 설정 조회 API
 app.get('/api/backup/settings', async (req, res) => {
     try {
-        let settings = await db.get('SELECT * FROM backup_settings ORDER BY id DESC LIMIT 1');
-        if (!settings) {
-            // 기본 설정 생성
-            await db.run(`
-                INSERT INTO backup_settings 
-                (is_auto_backup, backup_interval, backup_time, backup_day, backup_email) 
-                VALUES (0, 'weekly', '03:00', 'sunday', NULL)
-            `);
-            settings = await db.get('SELECT * FROM backup_settings ORDER BY id DESC LIMIT 1');
-        }
+        const keys = ['is_auto_backup', 'backup_interval', 'backup_time', 'backup_day', 'backup_email'];
+        const rows = await db.all(`SELECT key, value FROM settings WHERE key IN (${keys.map(() => '?').join(',')})`, keys);
+        const settings = {};
+        for (const r of rows) settings[r.key] = r.value;
         res.json(settings);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -456,26 +474,16 @@ app.get('/api/backup/settings', async (req, res) => {
 app.put('/api/backup/settings', async (req, res) => {
     const { is_auto_backup, backup_interval, backup_time, backup_day, backup_email } = req.body;
     try {
-        await db.run(`
-            UPDATE backup_settings 
-            SET is_auto_backup = ?, 
-                backup_interval = ?, 
-                backup_time = ?, 
-                backup_day = ?, 
-                backup_email = ?,
-                updated_at = datetime('now', 'localtime')
-            WHERE id = (SELECT id FROM backup_settings ORDER BY id DESC LIMIT 1)
-        `, [is_auto_backup, backup_interval, backup_time, backup_day, backup_email]);
-        
-        // 백업 스케줄 재설정
-        updateBackupSchedule({
-            is_auto_backup,
-            backup_interval,
-            backup_time,
-            backup_day,
-            backup_email
-        });
-        
+        const updates = [
+            ['is_auto_backup', String(is_auto_backup ?? '0')],
+            ['backup_interval', backup_interval || 'weekly'],
+            ['backup_time', backup_time || '03:00'],
+            ['backup_day', backup_day || 'sunday'],
+            ['backup_email', backup_email || ''],
+        ];
+        for (const [key, value] of updates) {
+            await db.run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, value]);
+        }
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -485,12 +493,11 @@ app.put('/api/backup/settings', async (req, res) => {
 // 수동 백업 실행 API
 app.post('/api/backup/run', async (req, res) => {
     try {
-        const settings = await db.get('SELECT * FROM backup_settings ORDER BY id DESC LIMIT 1');
-        if (!settings?.backup_email) {
+        const emailRow = await db.get("SELECT value FROM settings WHERE key = 'backup_email'");
+        if (!emailRow?.value) {
             return res.status(400).json({ error: '백업 이메일 설정이 필요합니다.' });
         }
-        
-        await runBackupNow(settings.backup_email);
+        await runBackupNow(emailRow.value);
         res.json({ success: true, message: '백업이 시작되었습니다.' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -500,7 +507,7 @@ app.post('/api/backup/run', async (req, res) => {
 // 서버 시작
 async function startServer() {
     await initializeDB();
-    const PORT = 3000;
+    const PORT = process.env.PORT || 3000;
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`Server is running on http://localhost:${PORT}`);
     });
@@ -509,21 +516,31 @@ async function startServer() {
 app.post('/api/admin/execute-sql', async (req, res) => {
     const { query } = req.body;
     try {
-        const isSelect = query.trim().toLowerCase().startsWith('select');
-        
-        if (isSelect) {
-            // SELECT 쿼리인 경우 바로 실행
-            const results = await db.all(query);
-            res.json({ 
-                success: true, 
-                isSelect: true, 
-                results
-            });
-        } else {
-            // INSERT, UPDATE, DELETE 등의 쿼리
-            await db.run(query);
-            res.json({ success: true, isSelect: false });
+        // 유효한 구문만 추출 (빈 줄, 주석 제거 후 ; 기준 분리)
+        const statements = query
+            .split(';')
+            .map(s => s.replace(/--[^\n]*/g, '').trim())
+            .filter(s => s.length > 0);
+
+        if (statements.length === 0) {
+            return res.json({ success: true, isSelect: false, changes: 0 });
         }
+
+        // 단일 SELECT / PRAGMA 구문
+        if (statements.length === 1) {
+            const trimmed = statements[0].toLowerCase();
+            const isSelect = trimmed.startsWith('select') || trimmed.startsWith('pragma');
+            if (isSelect) {
+                const results = await db.all(statements[0]);
+                return res.json({ success: true, isSelect: true, results });
+            }
+            const result = await db.run(statements[0]);
+            return res.json({ success: true, isSelect: false, changes: result.changes ?? 0 });
+        }
+
+        // 다중 구문: exec으로 일괄 실행 (결과 반환 없음)
+        await db.exec(statements.join(';'));
+        res.json({ success: true, isSelect: false, message: `${statements.length}개 구문 실행 완료` });
     } catch (err) {
         console.error('SQL 실행 에러:', err);
         res.status(500).json({ error: err.message });
