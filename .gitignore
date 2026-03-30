@@ -1,3 +1,4 @@
 backend/node_modules/
 backend/database.db
 backend/.env
+frontend_react/
