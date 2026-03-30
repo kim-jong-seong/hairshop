@@ -144,7 +144,7 @@ app.post('/api/customers', async (req, res) => {
 app.get('/api/services', async (req, res) => {
     try {
         const services = await db.all(
-            "SELECT * FROM services WHERE id != 999 AND is_deleted = 'N' ORDER BY is_favorite DESC, name"
+            "SELECT * FROM services WHERE is_deleted = 'N' ORDER BY is_favorite DESC, name"
         );
         res.json(services);
     } catch (err) {
@@ -161,6 +161,7 @@ app.post('/api/services', async (req, res) => {
             'INSERT INTO services (name, price, is_favorite, created_at) VALUES (?, ?, 0, ?)',
             [name, price, koreanTime]
         );
+
         res.json({ id: result.lastID });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -197,7 +198,7 @@ app.get('/api/history', async (req, res) => {
                 END as service_name
             FROM history h
             JOIN customers c ON h.customer_id = c.id
-            JOIN services s ON h.service_id = s.id
+            LEFT JOIN services s ON h.service_id = s.id
             WHERE h.delete_yn != 'Y'
         `;
 
@@ -235,8 +236,8 @@ app.get('/api/history', async (req, res) => {
 
 app.post('/api/history', async (req, res) => {
     let { customer_id, service_id, amount, memo, created_at, modified_service_name } = req.body;
-    const is_direct_input = service_id === 999 || service_id == "" || service_id == null;
-    service_id = is_direct_input > 0 ? 999 : service_id;
+    const is_direct_input = service_id == null || service_id == "";
+    service_id = is_direct_input ? null : service_id;
 
     try {
         const result = await db.run(
@@ -257,13 +258,13 @@ app.post('/api/history', async (req, res) => {
 app.put('/api/history/:id', async (req, res) => {
     const { id } = req.params;
     let { service_id, amount, memo, created_at, modified_service_name } = req.body;
-    const is_direct_input = service_id === 999 || service_id == "" || service_id == null;
-    service_id = is_direct_input > 0 ? 999 : service_id;
+    const is_direct_input = service_id == null || service_id == "";
+    service_id = is_direct_input ? null : service_id;
 
     try {
         await db.run(
             `UPDATE history SET
-                service_id = IFNULL(?, 999), amount = ?, memo = ?, created_at = ?,
+                service_id = ?, amount = ?, memo = ?, created_at = ?,
                 is_direct_input = ?, modified_service_name = ?,
                 updated_at = datetime('now', 'localtime')
             WHERE id = ?`,
@@ -389,7 +390,7 @@ app.get('/api/export/csv', async (req, res) => {
                 s.name as service_name
             FROM history h
             JOIN customers c ON h.customer_id = c.id
-            JOIN services s ON h.service_id = s.id
+            LEFT JOIN services s ON h.service_id = s.id
             ORDER BY h.id
         `);
 
@@ -431,11 +432,11 @@ app.get('/api/export/csv', async (req, res) => {
         // ZIP 파일 생성
         const zip = new require('jszip')();
         
-        zip.file('customers.csv', customersStringifier.getHeaderString() + 
+        zip.file('customers.csv', '\ufeff' + customersStringifier.getHeaderString() +
                                 customersStringifier.stringifyRecords(customers));
-        zip.file('services.csv', servicesStringifier.getHeaderString() + 
+        zip.file('services.csv', '\ufeff' + servicesStringifier.getHeaderString() +
                                servicesStringifier.stringifyRecords(services));
-        zip.file('history.csv', historyStringifier.getHeaderString() + 
+        zip.file('history.csv', '\ufeff' + historyStringifier.getHeaderString() +
                               historyStringifier.stringifyRecords(history));
 
         const zipContent = await zip.generateAsync({type: 'nodebuffer'});
