@@ -1,0 +1,15 @@
+{
+  "short_name": "이미란헤어샵",
+  "name": "이미란헤어샵",
+  "icons": [
+    {
+      "src": "scissors.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
