@@ -199,6 +199,7 @@ app.get('/api/history', async (req, res) => {
                 c.name as customer_name,
                 c.gender,
                 c.phone,
+                c.memo as customer_memo,
                 CASE
                     WHEN h.is_direct_input = 1 THEN h.modified_service_name
                     ELSE s.name
